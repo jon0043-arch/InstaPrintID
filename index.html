@@ -138,10 +138,9 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="zone-placeholder" id="ph-f"><span class="icon">🪪</span>Front of License</div>
         <div class="zone-status" id="st-f"></div>
         <div class="btn-row">
-          <button class="cam-btn" onclick="openCamera('f')">📷 Camera</button>
-          <label for="file-f">📁 Upload</label>
+          <button class="cam-btn" style="width:100%" onclick="openCamera('f')">📷 Take Photo</button>
         </div>
-        <input type="file" id="file-f" accept="image/*">
+        <input type="file" id="file-f" accept="image/*" style="display:none">
       </div>
       <div class="zone" id="zone-b">
         <span class="zone-tag">Back</span>
@@ -149,10 +148,9 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="zone-placeholder" id="ph-b"><span class="icon">🪪</span>Back of License</div>
         <div class="zone-status" id="st-b"></div>
         <div class="btn-row">
-          <button class="cam-btn" onclick="openCamera('b')">📷 Camera</button>
-          <label for="file-b">📁 Upload</label>
+          <button class="cam-btn" style="width:100%" onclick="openCamera('b')">📷 Take Photo</button>
         </div>
-        <input type="file" id="file-b" accept="image/*">
+        <input type="file" id="file-b" accept="image/*" style="display:none">
       </div>
     </div>
 
@@ -446,9 +444,7 @@ function buildPage() {
   const bc = renderLicense(state.b);
 
   ctx.drawImage(fc, startX, topY, OUT_W, OUT_H);
-  drawBorder(ctx, startX, topY, OUT_W, OUT_H);
   ctx.drawImage(bc, startX, bottomY, OUT_W, OUT_H);
-  drawBorder(ctx, startX, bottomY, OUT_W, OUT_H);
 
   return page;
 }
