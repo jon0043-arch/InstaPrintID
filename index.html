@@ -538,5 +538,17 @@ function downloadPDF() {
   a.click();
 }
 </script>
-</body>
-</html>
+<!-- Cookie Banner -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111;color:#fff;padding:14px 24px;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:9999;">
+  <span>🍪 InstaPrintID uses no cookies and stores no data. Ever. <a href="/privacy" style="color:#9dd4f3;text-decoration:none;">Learn more</a></span>
+  <button onclick="dismissCookie()" style="background:#0070ba;color:#fff;border:none;padding:8px 18px;border-radius:20px;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">Got it</button>
+</div>
+<script>
+  if (!sessionStorage.getItem('cookieDismissed')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function dismissCookie() {
+    sessionStorage.setItem('cookieDismissed', '1');
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script>
