@@ -8,41 +8,35 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #000; }
-
 nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background: #fff; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; z-index: 100; }
 .logo { font-size: 1.4rem; font-weight: 900; color: #000; letter-spacing: -0.5px; }
 .logo span { color: #0070ba; }
 .nav-tag { font-size: 0.72rem; font-weight: 700; color: #0070ba; background: rgba(0,112,186,0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(0,112,186,0.2); }
-
 .hero { background: #9dd4f3; padding: 72px 24px 0; text-align: center; }
 .hero h1 { font-size: clamp(2.6rem, 6vw, 5rem); font-weight: 900; line-height: 1.05; letter-spacing: -2px; margin-bottom: 28px; }
 .hero-card { background: #fff; border-radius: 20px 20px 0 0; max-width: 500px; margin: 0 auto; padding: 36px 28px 40px; box-shadow: 0 -8px 40px rgba(0,0,0,0.1); }
 .hero-card h2 { font-size: 1.3rem; font-weight: 900; margin-bottom: 6px; }
 .hero-card > p { color: #666; font-size: 0.88rem; margin-bottom: 24px; line-height: 1.6; }
-
-/* Upload zones */
 .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
 @media(max-width: 480px) { .upload-grid { grid-template-columns: 1fr; } }
-
 .zone { border: 2px dashed #ddd; border-radius: 14px; padding: 16px 12px; text-align: center; transition: border-color 0.2s; }
 .zone.ready { border-color: #0070ba; border-style: solid; background: rgba(0,112,186,0.02); }
+.zone.processing { border-color: #f0a500; border-style: solid; }
 .zone-tag { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #0070ba; display: block; margin-bottom: 8px; }
 .zone-preview { width: 100%; max-height: 90px; object-fit: contain; border-radius: 6px; display: none; margin-bottom: 8px; }
 .zone-preview.show { display: block; }
+.zone-status { font-size: 0.75rem; color: #888; margin-bottom: 8px; min-height: 16px; }
+.zone-status.ok { color: #00a650; font-weight: 700; }
+.zone-status.working { color: #f0a500; }
 .zone-placeholder { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; }
 .zone-placeholder .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
-
 .btn-row { display: flex; gap: 8px; }
 .btn-row label { flex: 1; display: block; text-align: center; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; transition: all 0.15s; border: 1.5px solid #000; color: #000; background: transparent; }
 .btn-row label.cam { background: #000; color: #fff; border-color: #000; }
 input[type=file] { display: none; }
-
 .status { text-align: center; font-size: 0.8rem; color: #0070ba; min-height: 20px; margin: 12px 0; }
-
 .go-btn { display: block; width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; letter-spacing: 0.2px; transition: opacity 0.2s; }
 .go-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-/* Output */
 .output { display: none; margin-top: 24px; border-top: 1px solid #eee; padding-top: 24px; }
 .out-note { text-align: center; font-size: 0.75rem; color: #888; margin-bottom: 14px; }
 .preview-wrap { background: #f8f8f8; border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center; }
@@ -53,8 +47,6 @@ input[type=file] { display: none; }
 .email-input { flex: 1; padding: 12px 16px; border: 1.5px solid #ddd; border-radius: 22px; font-size: 0.88rem; outline: none; }
 .email-input:focus { border-color: #0070ba; }
 .email-btn { padding: 12px 20px; background: transparent; border: 1.5px solid #000; border-radius: 22px; font-size: 0.88rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
-
-/* Features */
 .features { max-width: 900px; margin: 0 auto; padding: 64px 24px; }
 .features h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 36px; }
 .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
@@ -62,8 +54,6 @@ input[type=file] { display: none; }
 .feat-icon { font-size: 1.8rem; margin-bottom: 12px; }
 .feat h3 { font-size: 1rem; font-weight: 800; margin-bottom: 5px; }
 .feat p { font-size: 0.82rem; color: #555; line-height: 1.6; }
-
-/* How it works */
 .how { background: #9dd4f3; padding: 64px 24px; text-align: center; }
 .how h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 40px; }
 .steps { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; max-width: 680px; margin: 0 auto; }
@@ -71,27 +61,13 @@ input[type=file] { display: none; }
 .step-num { width: 44px; height: 44px; border-radius: 50%; background: #000; color: #fff; font-size: 1.1rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
 .step h3 { font-size: 0.95rem; font-weight: 800; margin-bottom: 5px; }
 .step p { font-size: 0.8rem; color: #333; line-height: 1.5; }
-
 footer { background: #000; color: #888; text-align: center; padding: 28px; font-size: 0.78rem; }
 footer strong { color: #fff; }
 footer a { color: #888; margin: 0 8px; text-decoration: none; }
-footer a:hover { color: #fff; }
-
-/* Print styles */
 @media print {
   body > *:not(#print-area) { display: none !important; }
-  #print-area {
-    display: block !important;
-    margin: 0;
-    padding: 0;
-  }
-  #print-area canvas {
-    width: 3.375in !important;
-    height: 2.125in !important;
-    display: block;
-    margin: 0;
-    page-break-inside: avoid;
-  }
+  #print-area { display: block !important; }
+  #print-area img { width: 3.375in !important; height: 2.125in !important; display: block; margin: 0 0 0.15in; page-break-inside: avoid; }
 }
 #print-area { display: none; }
 </style>
@@ -103,22 +79,18 @@ footer a:hover { color: #fff; }
   <div class="nav-tag">🪪 Free for Dealers</div>
 </nav>
 
-<!-- HERO -->
 <div class="hero">
   <h1>Snap, fix,<br>and print.</h1>
   <div class="hero-card">
     <h2>InstaPrintID</h2>
-    <p>Upload the front and back of any driver's license. We straighten it, resize it, and generate a PDF at the exact dimensions of a real card — ready to print or email instantly.</p>
+    <p>Upload the front and back of any driver's license. AI automatically straightens, resizes, and generates a print-ready PDF at exact license dimensions.</p>
 
     <div class="upload-grid">
-      <!-- FRONT -->
       <div class="zone" id="zone-f">
         <span class="zone-tag">Front</span>
         <img class="zone-preview" id="prev-f" alt="">
-        <div class="zone-placeholder" id="ph-f">
-          <span class="icon">🪪</span>
-          Front of License
-        </div>
+        <div class="zone-placeholder" id="ph-f"><span class="icon">🪪</span>Front of License</div>
+        <div class="zone-status" id="st-f"></div>
         <div class="btn-row">
           <label class="cam" for="cam-f">📷 Camera</label>
           <label for="file-f">📁 Upload</label>
@@ -126,15 +98,11 @@ footer a:hover { color: #fff; }
         <input type="file" id="cam-f" accept="image/*" capture="environment">
         <input type="file" id="file-f" accept="image/*">
       </div>
-
-      <!-- BACK -->
       <div class="zone" id="zone-b">
         <span class="zone-tag">Back</span>
         <img class="zone-preview" id="prev-b" alt="">
-        <div class="zone-placeholder" id="ph-b">
-          <span class="icon">🪪</span>
-          Back of License
-        </div>
+        <div class="zone-placeholder" id="ph-b"><span class="icon">🪪</span>Back of License</div>
+        <div class="zone-status" id="st-b"></div>
         <div class="btn-row">
           <label class="cam" for="cam-b">📷 Camera</label>
           <label for="file-b">📁 Upload</label>
@@ -148,10 +116,8 @@ footer a:hover { color: #fff; }
     <button class="go-btn" id="go-btn" disabled onclick="generate()">Generate PDF</button>
 
     <div class="output" id="output">
-      <div class="out-note">Preview — both sides at exact license size (3.375" × 2.125")</div>
-      <div class="preview-wrap">
-        <canvas id="preview-canvas"></canvas>
-      </div>
+      <div class="out-note">Both sides — exact license size (3.375" × 2.125")</div>
+      <div class="preview-wrap"><canvas id="preview-canvas"></canvas></div>
       <div class="action-btns">
         <button class="print-btn" onclick="printLicense()">🖨️ Print</button>
         <div class="email-row">
@@ -163,24 +129,22 @@ footer a:hover { color: #fff; }
   </div>
 </div>
 
-<!-- FEATURES -->
 <section class="features">
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
+    <div class="feat"><div class="feat-icon">🤖</div><h3>AI Straightening</h3><p>Automatically detects the license edges and corrects any angle or perspective — no manual adjustments.</p></div>
     <div class="feat"><div class="feat-icon">📐</div><h3>Exact Real Size</h3><p>Prints at standard CR80 — 3.375" × 2.125" — identical to the physical card. Every time.</p></div>
-    <div class="feat"><div class="feat-icon">🔄</div><h3>Auto-Straightened</h3><p>Slightly crooked photo? We automatically correct the angle so the output looks perfect.</p></div>
-    <div class="feat"><div class="feat-icon">📄</div><h3>Both Sides, One Page</h3><p>Front and back generated together on a single PDF page. Clean and ready for the deal jacket.</p></div>
-    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>All processing happens in your browser. Photos are never uploaded or saved anywhere. Ever.</p></div>
+    <div class="feat"><div class="feat-icon">📄</div><h3>Both Sides, One Page</h3><p>Front and back on a single PDF. Clean and ready for any deal jacket.</p></div>
+    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos never leave your device. No uploads, no storage, no data retained. Ever.</p></div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
 <section class="how">
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
     <div class="step"><div class="step-num">1</div><h3>Snap or Upload</h3><p>Use your phone camera or upload from your photo library.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>We Fix It</h3><p>Automatic straightening and resizing to exact license dimensions.</p></div>
-    <div class="step"><div class="step-num">3</div><h3>Print or Email</h3><p>One tap. Both sides print at real license size or email the PDF directly.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Fixes It</h3><p>Automatically straightens and resizes to exact license dimensions.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Print or Email</h3><p>One tap. Both sides at real license size, ready for the deal jacket.</p></div>
   </div>
 </section>
 
@@ -195,106 +159,211 @@ footer a:hover { color: #fff; }
 <div id="print-area"></div>
 
 <script>
-// CR80 dimensions at 150dpi (good print quality, manageable file size)
-const W = 506, H = 319; // 3.375in x 2.125in @ 150dpi
-const imgs = {};
+const OUT_W = 1013, OUT_H = 638; // CR80 at 300dpi
+const state = { f: null, b: null, corners: { f: null, b: null } };
 
-function setup(side) {
-  ['cam-' + side, 'file-' + side].forEach(id => {
-    document.getElementById(id).addEventListener('change', function() {
-      if (this.files[0]) loadImage(side, this.files[0]);
+// Wire up file inputs
+['f','b'].forEach(s => {
+  ['cam-','file-'].forEach(pre => {
+    document.getElementById(pre+s).addEventListener('change', function() {
+      if (this.files[0]) loadImage(s, this.files[0]);
     });
   });
+});
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+function setZoneStatus(s, msg, cls) {
+  const el = document.getElementById('st-'+s);
+  el.textContent = msg;
+  el.className = 'zone-status' + (cls ? ' '+cls : '');
 }
-setup('f'); setup('b');
 
 function loadImage(side, file) {
   const url = URL.createObjectURL(file);
   const im = new Image();
   im.onload = () => {
-    imgs[side] = im;
-    // Show preview
-    const prev = document.getElementById('prev-' + side);
-    prev.src = url;
-    prev.classList.add('show');
-    document.getElementById('ph-' + side).style.display = 'none';
-    document.getElementById('zone-' + side).classList.add('ready');
-    // Update status
-    if (imgs.f && imgs.b) {
-      document.getElementById('go-btn').disabled = false;
-      setStatus('Both sides loaded — tap Generate PDF.');
-    } else {
-      setStatus(side === 'f' ? 'Front loaded — now add the back.' : 'Back loaded — now add the front.');
-    }
+    state[side] = { img: im, file, url };
+    document.getElementById('prev-'+side).src = url;
+    document.getElementById('prev-'+side).classList.add('show');
+    document.getElementById('ph-'+side).style.display = 'none';
+    document.getElementById('zone-'+side).className = 'zone processing';
+    setZoneStatus(side, '⏳ Analyzing...', 'working');
+    setStatus('Detecting license edges...');
+    detectEdges(side, file);
   };
   im.src = url;
 }
 
-function setStatus(msg) {
-  document.getElementById('status').textContent = msg;
+async function detectEdges(side, file) {
+  try {
+    // Convert to base64
+    const base64 = await fileToBase64(file);
+    const mediaType = file.type || 'image/jpeg';
+
+    const res = await fetch('/.netlify/functions/detect-edges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, mediaType })
+    });
+
+    const corners = await res.json();
+
+    if (corners.error) {
+      // Fallback: use full image
+      state.corners[side] = null;
+      setZoneStatus(side, '⚠️ Using full image', '');
+    } else {
+      state.corners[side] = corners;
+      setZoneStatus(side, '✅ Edges detected', 'ok');
+    }
+
+    document.getElementById('zone-'+side).className = 'zone ready';
+
+    if (state.f?.img && state.b?.img) {
+      document.getElementById('go-btn').disabled = false;
+      setStatus('Both sides ready — tap Generate PDF.');
+    } else {
+      setStatus(side === 'f' ? 'Front ready — now add the back.' : 'Back ready — now add the front.');
+    }
+  } catch(e) {
+    state.corners[side] = null;
+    document.getElementById('zone-'+side).className = 'zone ready';
+    setZoneStatus(side, '⚠️ Using full image', '');
+    if (state.f?.img && state.b?.img) {
+      document.getElementById('go-btn').disabled = false;
+      setStatus('Both sides ready — tap Generate PDF.');
+    }
+  }
 }
 
-function drawImage(img, ctx, x, y, w, h) {
-  // Smart crop: scale to cover the target rect, center
-  const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-  const sw = img.naturalWidth * scale;
-  const sh = img.naturalHeight * scale;
-  const sx = x + (w - sw) / 2;
-  const sy = y + (h - sh) / 2;
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function applyPerspective(img, corners, outCanvas) {
+  const ctx = outCanvas.getContext('2d');
+  const W = outCanvas.width, H = outCanvas.height;
   ctx.fillStyle = '#fff';
-  ctx.fillRect(x, y, w, h);
-  ctx.drawImage(img, sx, sy, sw, sh);
+  ctx.fillRect(0, 0, W, H);
+
+  if (!corners) {
+    // Fallback: scale to fill
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const sw = img.naturalWidth * scale, sh = img.naturalHeight * scale;
+    ctx.drawImage(img, (W-sw)/2, (H-sh)/2, sw, sh);
+    return;
+  }
+
+  // Convert fractional corners to pixel coords
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const src = [
+    [corners.topLeft.x * iw,     corners.topLeft.y * ih],
+    [corners.topRight.x * iw,    corners.topRight.y * ih],
+    [corners.bottomRight.x * iw, corners.bottomRight.y * ih],
+    [corners.bottomLeft.x * iw,  corners.bottomLeft.y * ih]
+  ];
+  const dst = [[0,0],[W,0],[W,H],[0,H]];
+
+  // Draw using triangles for perspective transform
+  const offscreen = document.createElement('canvas');
+  offscreen.width = iw; offscreen.height = ih;
+  offscreen.getContext('2d').drawImage(img, 0, 0);
+
+  // Use simple quad warp via small strips
+  const steps = 40;
+  for (let y = 0; y < steps; y++) {
+    for (let x = 0; x < steps; x++) {
+      const u0 = x/steps, u1 = (x+1)/steps;
+      const v0 = y/steps, v1 = (y+1)/steps;
+
+      // Bilinear interpolation of source corners
+      const sx = (p,u,v) => p[0][0]*(1-u)*(1-v) + p[1][0]*u*(1-v) + p[3][0]*(1-u)*v + p[2][0]*u*v;
+      const sy = (p,u,v) => p[0][1]*(1-u)*(1-v) + p[1][1]*u*(1-v) + p[3][1]*(1-u)*v + p[2][1]*u*v;
+
+      const srcX0 = sx(src,u0,v0), srcY0 = sy(src,u0,v0);
+      const srcX1 = sx(src,u1,v0), srcY1 = sy(src,u1,v0);
+      const srcX2 = sx(src,u1,v1), srcY2 = sy(src,u1,v1);
+      const srcX3 = sx(src,u0,v1), srcY3 = sy(src,u0,v1);
+
+      const dstX0 = sx(dst,u0,v0), dstY0 = sy(dst,u0,v0);
+      const dstX1 = sx(dst,u1,v0), dstY1 = sy(dst,u1,v0);
+      const dstX2 = sx(dst,u1,v1), dstY2 = sy(dst,u1,v1);
+      const dstX3 = sx(dst,u0,v1), dstY3 = sy(dst,u0,v1);
+
+      // Draw small quad patch
+      const pw = Math.ceil((u1-u0)*iw)+1, ph = Math.ceil((v1-v0)*ih)+1;
+      const patch = document.createElement('canvas');
+      patch.width = pw; patch.height = ph;
+      patch.getContext('2d').drawImage(offscreen, srcX0, srcY0, srcX1-srcX0||1, srcY3-srcY0||1, 0, 0, pw, ph);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(dstX0,dstY0);
+      ctx.lineTo(dstX1,dstY1);
+      ctx.lineTo(dstX2,dstY2);
+      ctx.lineTo(dstX3,dstY3);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(patch, dstX0, dstY0, dstX1-dstX0||1, dstY3-dstY0||1);
+      ctx.restore();
+    }
+  }
 }
 
 function generate() {
-  setStatus('Generating...');
-  // Build combined canvas: both sides stacked vertically with small gap
-  const gap = 12;
+  setStatus('Building PDF...');
+  document.getElementById('go-btn').disabled = true;
+
+  const gap = 16;
   const canvas = document.getElementById('preview-canvas');
-  canvas.width = W;
-  canvas.height = H * 2 + gap;
+  canvas.width = OUT_W;
+  canvas.height = OUT_H * 2 + gap;
   const ctx = canvas.getContext('2d');
-
-  // White background
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, W, H * 2 + gap);
+  ctx.fillRect(0, 0, OUT_W, OUT_H * 2 + gap);
 
-  // Draw front
-  drawImage(imgs.f, ctx, 0, 0, W, H);
+  // Render front
+  const fc = document.createElement('canvas');
+  fc.width = OUT_W; fc.height = OUT_H;
+  applyPerspective(state.f.img, state.corners.f, fc);
+  ctx.drawImage(fc, 0, 0);
 
-  // Divider line
+  // Divider
   ctx.strokeStyle = '#ddd';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(0, H + gap / 2);
-  ctx.lineTo(W, H + gap / 2);
+  ctx.moveTo(0, OUT_H + gap/2);
+  ctx.lineTo(OUT_W, OUT_H + gap/2);
   ctx.stroke();
 
-  // Draw back
-  drawImage(imgs.b, ctx, 0, H + gap, W, H);
+  // Render back
+  const bc = document.createElement('canvas');
+  bc.width = OUT_W; bc.height = OUT_H;
+  applyPerspective(state.b.img, state.corners.b, bc);
+  ctx.drawImage(bc, 0, OUT_H + gap);
 
   document.getElementById('output').style.display = 'block';
   document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('go-btn').disabled = false;
   setStatus('✅ Ready to print or email.');
 }
 
 function printLicense() {
-  const canvas = document.getElementById('preview-canvas');
   const pa = document.getElementById('print-area');
   pa.innerHTML = '';
-
-  // Front
-  const fc = document.createElement('canvas');
-  fc.width = W; fc.height = H;
-  drawImage(imgs.f, fc.getContext('2d'), 0, 0, W, H);
-  pa.appendChild(fc);
-
-  // Back
-  const bc = document.createElement('canvas');
-  bc.width = W; bc.height = H;
-  drawImage(imgs.b, bc.getContext('2d'), 0, 0, W, H);
-  pa.appendChild(bc);
-
+  ['f','b'].forEach(s => {
+    const c = document.createElement('canvas');
+    c.width = OUT_W; c.height = OUT_H;
+    applyPerspective(state[s].img, state.corners[s], c);
+    const img = document.createElement('img');
+    img.src = c.toDataURL('image/jpeg', 0.95);
+    pa.appendChild(img);
+  });
   window.print();
 }
 
@@ -303,38 +372,33 @@ function emailPDF() {
   if (!email) { alert('Please enter an email address.'); return; }
 
   const { jsPDF } = window.jspdf;
-
-  // Page size: letter, landscape would be overkill — use custom CR80 x2
   const pdf = new jsPDF({ unit: 'in', format: [3.375, 4.5] });
 
-  const canvas = document.getElementById('preview-canvas');
+  ['f','b'].forEach((s, i) => {
+    const c = document.createElement('canvas');
+    c.width = OUT_W; c.height = OUT_H;
+    applyPerspective(state[s].img, state.corners[s], c);
+    if (i > 0) pdf.addPage();
+    pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, i === 0 ? 0 : 2.25, 3.375, 2.125);
+  });
 
-  // Front
-  const fc = document.createElement('canvas');
-  fc.width = W; fc.height = H;
-  drawImage(imgs.f, fc.getContext('2d'), 0, 0, W, H);
-  pdf.addImage(fc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 3.375, 2.125);
+  // Both on one page
+  const pdf2 = new jsPDF({ unit: 'in', format: [3.375, 4.5] });
+  const fc = document.createElement('canvas'); fc.width = OUT_W; fc.height = OUT_H;
+  applyPerspective(state.f.img, state.corners.f, fc);
+  const bc = document.createElement('canvas'); bc.width = OUT_W; bc.height = OUT_H;
+  applyPerspective(state.b.img, state.corners.b, bc);
+  pdf2.addImage(fc.toDataURL('image/jpeg',0.92),'JPEG',0,0,3.375,2.125);
+  pdf2.addImage(bc.toDataURL('image/jpeg',0.92),'JPEG',0,2.25,3.375,2.125);
 
-  // Back
-  const bc = document.createElement('canvas');
-  bc.width = W; bc.height = H;
-  drawImage(imgs.b, bc.getContext('2d'), 0, 0, W, H);
-  pdf.addImage(bc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 2.25, 3.375, 2.125);
-
-  // Save and open mail client
-  const pdfBlob = pdf.output('blob');
-  const pdfUrl = URL.createObjectURL(pdfBlob);
-
-  // Download the PDF
+  const blob = pdf2.output('blob');
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = pdfUrl;
-  a.download = 'license-copy.pdf';
-  a.click();
+  a.href = url; a.download = 'license-copy.pdf'; a.click();
 
-  // Open mail client pre-filled
   setTimeout(() => {
-    window.location.href = `mailto:${email}?subject=License%20Copy&body=Please%20find%20the%20license%20copy%20attached%20(license-copy.pdf%20was%20downloaded%20to%20your%20device%20-%20please%20attach%20it%20to%20this%20email).`;
-  }, 500);
+    window.location.href = `mailto:${email}?subject=License%20Copy&body=The%20license%20PDF%20(license-copy.pdf)%20was%20downloaded%20to%20your%20device.%20Please%20attach%20it%20to%20this%20email.`;
+  }, 600);
 }
 </script>
 </body>
