@@ -24,7 +24,7 @@ exports.handler = async (event) => {
     const rbgBuffer = await rbgRes.arrayBuffer();
     const rbgBase64 = Buffer.from(rbgBuffer).toString('base64');
 
-    // Step 2: Claude gets precise corners + rotation from original image
+    // Step 2: Ask Claude only for rotation
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -34,7 +34,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 300,
+        max_tokens: 100,
         messages: [{
           role: 'user',
           content: [
@@ -44,24 +44,9 @@ exports.handler = async (event) => {
             },
             {
               type: 'text',
-              text: `Find the driver's license in this image. Return the EXACT pixel coordinates of its 4 corners and the rotation needed.
-
-Be very precise — find the actual corners of the physical card, accounting for any perspective distortion, angle, or tilt.
-
-Also determine: how many degrees clockwise to rotate so text reads left-to-right, right-side up (0, 90, 180, or 270).
-
-Return ONLY raw JSON:
-{
-  "topLeft": {"x": 120, "y": 80},
-  "topRight": {"x": 890, "y": 60},
-  "bottomRight": {"x": 910, "y": 540},
-  "bottomLeft": {"x": 100, "y": 560},
-  "rotation": 0,
-  "imageWidth": 1200,
-  "imageHeight": 800
-}
-
-x/y are actual pixel coordinates in the original image. imageWidth/imageHeight are the full image dimensions.`
+              text: `Look at this photo of a driver's license. How many degrees clockwise must it be rotated so the text reads normally left-to-right and right-side up?
+Return ONLY raw JSON: {"rotation": 0}
+rotation must be 0, 90, 180, or 270. Nothing else.`
             }
           ]
         }]
@@ -71,16 +56,13 @@ x/y are actual pixel coordinates in the original image. imageWidth/imageHeight a
     const claudeData = await claudeRes.json();
     const text = claudeData.content?.[0]?.text || '{"rotation":0}';
     const cleaned = text.replace(/```json|```/g, '').trim();
-    const corners = JSON.parse(cleaned);
+    let rotation = 0;
+    try { rotation = JSON.parse(cleaned).rotation || 0; } catch(e) {}
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cleanedImage: rbgBase64,
-        corners,
-        rotation: corners.rotation || 0
-      })
+      body: JSON.stringify({ cleanedImage: rbgBase64, rotation })
     };
 
   } catch (err) {
