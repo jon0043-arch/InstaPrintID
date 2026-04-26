@@ -31,8 +31,7 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 .zone-placeholder { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; }
 .zone-placeholder .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
 .btn-row { display: flex; gap: 8px; }
-.btn-row label { flex: 1; display: block; text-align: center; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; border: 1.5px solid #000; color: #000; background: transparent; }
-.btn-row .cam-btn { flex: 1; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; background: #000; color: #fff; border: none; }
+.cam-btn { flex: 1; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; background: #000; color: #fff; border: none; width: 100%; }
 input[type=file] { display: none; }
 .status { text-align: center; font-size: 0.8rem; color: #0070ba; min-height: 20px; margin: 12px 0; }
 .go-btn { display: block; width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: opacity 0.2s; }
@@ -66,20 +65,13 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 }
 #print-area { display: none; }
 
-/* CAMERA MODAL */
+/* CAMERA */
 #camera-modal { display: none; position: fixed; inset: 0; background: #000; z-index: 999; flex-direction: column; align-items: center; justify-content: center; }
 #camera-modal.active { display: flex; }
 #camera-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 #camera-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .overlay-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
-.overlay-cutout {
-  position: relative; z-index: 2;
-  width: 88vw; max-width: 420px;
-  aspect-ratio: 3.375 / 2.125;
-  border-radius: 4.5%;
-  box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
-  border: 2px solid rgba(255,255,255,0.8);
-}
+.overlay-cutout { position: relative; z-index: 2; width: 88vw; max-width: 420px; aspect-ratio: 3.375 / 2.125; border-radius: 4.5%; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.8); }
 .overlay-corner { position: absolute; width: 24px; height: 24px; border-color: #0070ba; border-style: solid; border-width: 0; }
 .overlay-corner.tl { top: -2px; left: -2px; border-top-width: 4px; border-left-width: 4px; border-radius: 4px 0 0 0; }
 .overlay-corner.tr { top: -2px; right: -2px; border-top-width: 4px; border-right-width: 4px; border-radius: 0 4px 0 0; }
@@ -92,23 +84,34 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 .cam-capture { width: 76px; height: 76px; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px rgba(255,255,255,0.25); transition: transform 0.1s; }
 .cam-capture:active { transform: scale(0.95); }
 .cam-capture-inner { width: 58px; height: 58px; border-radius: 50%; background: #fff; border: 2px solid #ddd; }
+
+/* AUTO-CAPTURE */
+.auto-status { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.55); padding: 8px 18px; border-radius: 20px; }
+.auto-dot { width: 10px; height: 10px; border-radius: 50%; background: #888; transition: background 0.3s; flex-shrink: 0; }
+.auto-dot.ready { background: #00e676; box-shadow: 0 0 8px rgba(0,230,118,0.8); animation: blink 0.6s ease-in-out infinite; }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+.auto-text { color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+.overlay-cutout.detected { border-color: #00e676; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 0 2px #00e676; }
 </style>
 </head>
 <body>
 
-<!-- CAMERA MODAL -->
 <div id="camera-modal">
   <video id="camera-video" autoplay playsinline muted></video>
   <div class="cam-label" id="cam-label">Front of License</div>
   <div id="camera-overlay">
     <div class="overlay-dim"></div>
-    <div class="overlay-cutout">
+    <div class="overlay-cutout" id="overlay-cutout">
       <div class="overlay-corner tl"></div>
       <div class="overlay-corner tr"></div>
       <div class="overlay-corner bl"></div>
       <div class="overlay-corner br"></div>
       <div class="overlay-hint">Align license inside the frame</div>
     </div>
+  </div>
+  <div class="auto-status">
+    <div class="auto-dot" id="auto-dot"></div>
+    <div class="auto-text" id="auto-text">Looking for license...</div>
   </div>
   <div class="camera-controls">
     <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
@@ -129,7 +132,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   <h1>Snap, fix,<br>and print.</h1>
   <div class="hero-card">
     <h2>InstaPrintID</h2>
-    <p>Upload any photo of a driver's license. AI removes the background, straightens it, and produces a clean black & white photocopy — ready to print in seconds.</p>
+    <p>Point your camera at any driver's license. AI automatically captures, removes the background, and produces a clean black & white photocopy — ready to print in seconds.</p>
 
     <div class="upload-grid">
       <div class="zone" id="zone-f">
@@ -138,7 +141,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="zone-placeholder" id="ph-f"><span class="icon">🪪</span>Front of License</div>
         <div class="zone-status" id="st-f"></div>
         <div class="btn-row">
-          <button class="cam-btn" style="width:100%" onclick="openCamera('f')">📷 Take Photo</button>
+          <button class="cam-btn" onclick="openCamera('f')">📷 Take Photo</button>
         </div>
         <input type="file" id="file-f" accept="image/*" style="display:none">
       </div>
@@ -148,13 +151,13 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="zone-placeholder" id="ph-b"><span class="icon">🪪</span>Back of License</div>
         <div class="zone-status" id="st-b"></div>
         <div class="btn-row">
-          <button class="cam-btn" style="width:100%" onclick="openCamera('b')">📷 Take Photo</button>
+          <button class="cam-btn" onclick="openCamera('b')">📷 Take Photo</button>
         </div>
         <input type="file" id="file-b" accept="image/*" style="display:none">
       </div>
     </div>
 
-    <div class="status" id="status">Upload front and back to get started.</div>
+    <div class="status" id="status">Tap a button to photograph the license.</div>
     <button class="go-btn" id="go-btn" disabled onclick="generate()">Generate PDF</button>
 
     <div class="output" id="output">
@@ -171,7 +174,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="features">
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
-    <div class="feat"><div class="feat-icon">📷</div><h3>Guided Camera</h3><p>CR80 outline guides you to frame the license perfectly before you snap.</p></div>
+    <div class="feat"><div class="feat-icon">📷</div><h3>Auto-Capture</h3><p>Just point and hold. The camera detects the license and snaps automatically — no button needed.</p></div>
     <div class="feat"><div class="feat-icon">✂️</div><h3>Background Removed</h3><p>AI strips everything except the license — no table, no hand, no clutter.</p></div>
     <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
     <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere. Ever.</p></div>
@@ -181,8 +184,8 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="how">
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><h3>Align & Snap</h3><p>Use the guided camera to frame the license perfectly inside the outline.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, straightened, rotated, converted to B&W automatically.</p></div>
+    <div class="step"><div class="step-num">1</div><h3>Point & Hold</h3><p>Aim at the license inside the frame. It captures automatically.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, straightened, converted to clean B&W.</p></div>
     <div class="step"><div class="step-num">3</div><h3>Print or Download</h3><p>Perfect photocopy on standard 8.5"×11" paper. Every time.</p></div>
   </div>
 </section>
@@ -198,19 +201,15 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <div id="print-area"></div>
 
 <script>
-const OUT_W = 1013, OUT_H = 638; // CR80 at 300dpi
-const PAGE_W = 2550, PAGE_H = 3300; // 8.5x11 at 300dpi
+const OUT_W = 1013, OUT_H = 638;
+const PAGE_W = 2550, PAGE_H = 3300;
 const CR80_RATIO = OUT_W / OUT_H;
 const state = { f: null, b: null };
 let currentSide = null;
 let videoStream = null;
-
-// File upload listeners
-['f','b'].forEach(s => {
-  document.getElementById('file-'+s).addEventListener('change', function() {
-    if (this.files[0]) handleFile(s, this.files[0]);
-  });
-});
+let autoCapLoop = null;
+let steadyFrames = 0;
+const NEEDED_FRAMES = 20;
 
 // ── CAMERA ──────────────────────────────────────────────
 async function openCamera(side) {
@@ -223,15 +222,91 @@ async function openCamera(side) {
     });
     document.getElementById('camera-video').srcObject = videoStream;
     document.getElementById('camera-modal').classList.add('active');
+    startAutoCapture();
   } catch(e) {
-    alert('Camera access denied. Please use the Upload button instead.');
+    alert('Camera access denied.');
   }
 }
 
 function closeCamera() {
+  stopAutoCapture();
   if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
   document.getElementById('camera-modal').classList.remove('active');
   document.getElementById('camera-video').srcObject = null;
+}
+
+function startAutoCapture() {
+  steadyFrames = 0;
+  const video = document.getElementById('camera-video');
+  const dot = document.getElementById('auto-dot');
+  const txt = document.getElementById('auto-text');
+  const cutout = document.getElementById('overlay-cutout');
+
+  autoCapLoop = setInterval(() => {
+    if (!video.videoWidth || !video.videoHeight) return;
+
+    // Sample the center region of the video (where the license should be)
+    const s = document.createElement('canvas');
+    s.width = 120; s.height = 80;
+    const sx = s.getContext('2d');
+    // Sample middle 60% of frame
+    sx.drawImage(video,
+      video.videoWidth * 0.2, video.videoHeight * 0.2,
+      video.videoWidth * 0.6, video.videoHeight * 0.6,
+      0, 0, 120, 80
+    );
+    const d = sx.getImageData(0, 0, 120, 80).data;
+
+    // Brightness
+    let totalBright = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      totalBright += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    }
+    const avgBright = totalBright / (d.length / 4);
+
+    // Contrast between center and edges
+    let cBright = 0, eBright = 0, cCount = 0, eCount = 0;
+    for (let y = 0; y < 80; y++) {
+      for (let x = 0; x < 120; x++) {
+        const i = (y * 120 + x) * 4;
+        const lum = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+        if (x > 20 && x < 100 && y > 15 && y < 65) { cBright += lum; cCount++; }
+        else { eBright += lum; eCount++; }
+      }
+    }
+    const contrast = Math.abs((cBright/cCount) - (eBright/eCount));
+    const detected = avgBright > 50 && avgBright < 230 && contrast > 8;
+
+    if (detected) {
+      steadyFrames++;
+      dot.classList.add('ready');
+      cutout.classList.add('detected');
+      const pct = Math.min(100, Math.round((steadyFrames / NEEDED_FRAMES) * 100));
+      txt.textContent = pct < 100 ? `Hold still... ${pct}%` : 'Capturing!';
+      if (steadyFrames >= NEEDED_FRAMES) {
+        clearInterval(autoCapLoop);
+        autoCapLoop = null;
+        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+        setTimeout(() => capturePhoto(), 80);
+      }
+    } else {
+      steadyFrames = 0;
+      dot.classList.remove('ready');
+      cutout.classList.remove('detected');
+      txt.textContent = 'Looking for license...';
+    }
+  }, 33);
+}
+
+function stopAutoCapture() {
+  if (autoCapLoop) { clearInterval(autoCapLoop); autoCapLoop = null; }
+  steadyFrames = 0;
+  const dot = document.getElementById('auto-dot');
+  const txt = document.getElementById('auto-text');
+  const cutout = document.getElementById('overlay-cutout');
+  if (dot) dot.classList.remove('ready');
+  if (cutout) cutout.classList.remove('detected');
+  if (txt) txt.textContent = 'Looking for license...';
 }
 
 function capturePhoto() {
@@ -320,14 +395,10 @@ function fileToBase64(file) {
 // ── RENDER LICENSE ───────────────────────────────────────
 function renderLicense(sideData) {
   const { img, rotation } = sideData;
-
-  // 1. Draw cleaned image to temp canvas
   const tmp = document.createElement('canvas');
   tmp.width = img.naturalWidth; tmp.height = img.naturalHeight;
   const tctx = tmp.getContext('2d');
   tctx.drawImage(img, 0, 0);
-
-  // 2. Find bounding box of non-transparent pixels
   const id = tctx.getImageData(0, 0, tmp.width, tmp.height);
   const d = id.data;
   let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
@@ -339,8 +410,6 @@ function renderLicense(sideData) {
       }
     }
   }
-
-  // 3. Crop to bounding box with padding
   const pad = 8;
   const cropX = Math.max(0, minX - pad);
   const cropY = Math.max(0, minY - pad);
@@ -350,12 +419,10 @@ function renderLicense(sideData) {
   cropped.width = cropW; cropped.height = cropH;
   cropped.getContext('2d').drawImage(tmp, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-  // 4. Auto-rotate based on aspect ratio — license should always be landscape
+  // Auto-rotate: license is always landscape
   let rotated = cropped;
   const isPortrait = cropped.height > cropped.width;
-  const autoRotation = isPortrait ? 90 : 0;
-  const finalRotation = autoRotation !== 0 ? autoRotation : (sideData.rotation || 0);
-
+  const finalRotation = isPortrait ? 90 : (rotation || 0);
   if (finalRotation !== 0) {
     const r = document.createElement('canvas');
     if (finalRotation === 90 || finalRotation === 270) { r.width = cropH; r.height = cropW; }
@@ -369,7 +436,7 @@ function renderLicense(sideData) {
     rotated = r;
   }
 
-  // 5. Center-crop to exact CR80 aspect ratio
+  // Crop to CR80 aspect ratio
   const imgRatio = rotated.width / rotated.height;
   let cx = 0, cy = 0, cw = rotated.width, ch = rotated.height;
   if (imgRatio > CR80_RATIO) {
@@ -380,14 +447,13 @@ function renderLicense(sideData) {
     cy = Math.round((rotated.height - ch) / 2);
   }
 
-  // 6. Output canvas at exact CR80 size
   const out = document.createElement('canvas');
   out.width = OUT_W; out.height = OUT_H;
   const octx = out.getContext('2d');
   octx.fillStyle = '#fff';
   octx.fillRect(0, 0, OUT_W, OUT_H);
 
-  // 7. Clip to perfect CR80 rounded rectangle
+  // Clip to perfect CR80 rounded rectangle
   const radius = Math.round(OUT_W * 0.04);
   octx.save();
   octx.beginPath();
@@ -401,12 +467,10 @@ function renderLicense(sideData) {
   octx.quadraticCurveTo(0, 0, radius, 0);
   octx.closePath();
   octx.clip();
-
-  // 8. Draw license filling the frame exactly — no distortion
   octx.drawImage(rotated, cx, cy, cw, ch, 0, 0, OUT_W, OUT_H);
   octx.restore();
 
-  // 9. Convert to clean grayscale
+  // Grayscale
   const gid = octx.getImageData(0, 0, OUT_W, OUT_H);
   const gd = gid.data;
   for (let i = 0; i < gd.length; i += 4) {
@@ -417,43 +481,20 @@ function renderLicense(sideData) {
   return out;
 }
 
-// ── PAGE LAYOUT ──────────────────────────────────────────
-function drawBorder(ctx, x, y, w, h) {
-  const r = Math.round(w * 0.04);
-  ctx.save();
-  ctx.strokeStyle = '#aaaaaa';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
-  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);
-  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);
-  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);
-  ctx.quadraticCurveTo(x,y,x+r,y);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
-}
-
+// ── PAGE BUILD ───────────────────────────────────────────
 function buildPage() {
   const page = document.createElement('canvas');
   page.width = PAGE_W; page.height = PAGE_H;
   const ctx = page.getContext('2d');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
-
   const startX = Math.round(PAGE_W * 0.52);
   const topY = 150;
   const bottomY = Math.round(PAGE_H * 0.65);
-
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
-
   ctx.drawImage(fc, startX, topY, OUT_W, OUT_H);
   ctx.drawImage(bc, startX, bottomY, OUT_W, OUT_H);
-
   return page;
 }
 
