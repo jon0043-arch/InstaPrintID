@@ -6,7 +6,7 @@ exports.handler = async (event) => {
   try {
     const { imageBase64, mediaType } = JSON.parse(event.body);
 
-    // Step 1: Remove background
+    // Step 1: Remove background via remove.bg
     const imgBuffer = Buffer.from(imageBase64, 'base64');
     const formData = new FormData();
     formData.append('image_file', new Blob([imgBuffer], { type: mediaType }), 'license.jpg');
@@ -24,7 +24,7 @@ exports.handler = async (event) => {
     const rbgBuffer = await rbgRes.arrayBuffer();
     const rbgBase64 = Buffer.from(rbgBuffer).toString('base64');
 
-    // Step 2: Ask Claude only for rotation
+    // Step 2: Ask Claude for rotation using the cleaned image
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -34,19 +34,35 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 100,
+        max_tokens: 50,
         messages: [{
           role: 'user',
           content: [
             {
               type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: imageBase64 }
+              source: { type: 'base64', media_type: 'image/png', data: rbgBase64 }
             },
             {
               type: 'text',
-              text: `Look at this photo of a driver's license. How many degrees clockwise must it be rotated so the text reads normally left-to-right and right-side up?
-Return ONLY raw JSON: {"rotation": 0}
-rotation must be 0, 90, 180, or 270. Nothing else.`
+              text: `This is the back of a driver's license with the background removed.
+
+A driver's license back typically has:
+- A barcode (PDF417) along the bottom or right side
+- A magnetic stripe
+- Small text
+
+Determine the correct rotation so this image is right-side up and readable.
+
+The barcode on the back of a US license is typically along the BOTTOM edge when held normally.
+
+Return ONLY raw JSON — no explanation:
+{"rotation": 0}
+
+Valid values: 0, 90, 180, 270
+- 0 = already correct
+- 90 = rotate 90 degrees clockwise
+- 180 = flip upside down  
+- 270 = rotate 270 degrees clockwise (same as 90 counter-clockwise)`
             }
           ]
         }]
