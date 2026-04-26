@@ -302,10 +302,27 @@ function renderLicense(sideData) {
   const octx = out.getContext('2d');
   octx.fillStyle = '#fff';
   octx.fillRect(0, 0, OUT_W, OUT_H);
-  // Scale to fill CR80 exactly edge to edge
+  // Scale to fill CR80 exactly
   const scale = Math.max(OUT_W / rotated.width, OUT_H / rotated.height);
   const dw = rotated.width * scale, dh = rotated.height * scale;
+
+  // Apply rounded corner clip (CR80 standard radius ~3% of width)
+  const radius = Math.round(OUT_W * 0.03);
+  octx.save();
+  octx.beginPath();
+  octx.moveTo(radius, 0);
+  octx.lineTo(OUT_W - radius, 0);
+  octx.quadraticCurveTo(OUT_W, 0, OUT_W, radius);
+  octx.lineTo(OUT_W, OUT_H - radius);
+  octx.quadraticCurveTo(OUT_W, OUT_H, OUT_W - radius, OUT_H);
+  octx.lineTo(radius, OUT_H);
+  octx.quadraticCurveTo(0, OUT_H, 0, OUT_H - radius);
+  octx.lineTo(0, radius);
+  octx.quadraticCurveTo(0, 0, radius, 0);
+  octx.closePath();
+  octx.clip();
   octx.drawImage(rotated, (OUT_W-dw)/2, (OUT_H-dh)/2, dw, dh);
+  octx.restore();
 
   // Step 6: Convert to grayscale
   const gid = octx.getImageData(0, 0, OUT_W, OUT_H);
@@ -325,18 +342,15 @@ function buildPage() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-  // CR80 at 300dpi = 1013 x 638px — exact real size, centered on page
-  const gap = 60;
-  const totalH = OUT_H * 2 + gap;
-  const startX = Math.round((PAGE_W - OUT_W) / 2);
-  const startY = Math.round((PAGE_H - totalH) / 2);
+  // Top license near top, bottom license near bottom third
+  const topY = 150; // ~0.5in from top at 300dpi
+  const bottomY = Math.round(PAGE_H * 0.62); // bottom third
 
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
 
-  ctx.drawImage(fc, startX, startY, OUT_W, OUT_H);
-  ctx.drawImage(bc, startX, startY + OUT_H + gap, OUT_W, OUT_H);
-  // No borders
+  ctx.drawImage(fc, startX, topY, OUT_W, OUT_H);
+  ctx.drawImage(bc, startX, bottomY, OUT_W, OUT_H);
 
   return page;
 }
