@@ -268,11 +268,11 @@ function renderLicense(sideData) {
   // Scale to fit after rotation
   let dw, dh;
   if (rotation === 90 || rotation === 270) {
-    const scale = Math.min(OUT_W / img.naturalHeight, OUT_H / img.naturalWidth);
+    const scale = Math.max(OUT_W / img.naturalHeight, OUT_H / img.naturalWidth);
     dw = img.naturalWidth * scale;
     dh = img.naturalHeight * scale;
   } else {
-    const scale = Math.min(OUT_W / img.naturalWidth, OUT_H / img.naturalHeight);
+    const scale = Math.max(OUT_W / img.naturalWidth, OUT_H / img.naturalHeight);
     dw = img.naturalWidth * scale;
     dh = img.naturalHeight * scale;
   }
