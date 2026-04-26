@@ -75,14 +75,14 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 
 <nav>
   <div class="logo">InstaPrint<span>ID</span></div>
-  <div class="nav-tag">🪪 Free for Dealers</div>
+  <div class="nav-tag">🪪 Dealer Tool</div>
 </nav>
 
 <div class="hero">
   <h1>Snap, fix,<br>and print.</h1>
   <div class="hero-card">
     <h2>InstaPrintID</h2>
-    <p>Upload any photo of a driver's license — even crooked or sideways. AI extracts it, straightens it, and produces a clean black & white photocopy at exact license size on standard paper.</p>
+    <p>Upload any photo of a driver's license. AI removes the background, straightens it, and produces a clean black & white photocopy — ready to print or email in seconds.</p>
 
     <div class="upload-grid">
       <div class="zone" id="zone-f">
@@ -131,10 +131,10 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="features">
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
-    <div class="feat"><div class="feat-icon">🤖</div><h3>AI Extraction</h3><p>Automatically finds the license, removes the background, and straightens it perfectly.</p></div>
-    <div class="feat"><div class="feat-icon">🔄</div><h3>Auto-Rotate</h3><p>Sideways or upside down? AI detects orientation and corrects it automatically.</p></div>
+    <div class="feat"><div class="feat-icon">✂️</div><h3>Background Removed</h3><p>AI strips everything except the license — no table, no hand, no clutter.</p></div>
+    <div class="feat"><div class="feat-icon">🔄</div><h3>Auto-Rotate</h3><p>Sideways or upside down? Automatically corrected every time.</p></div>
     <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
-    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos never leave your device. No uploads, no storage. Ever.</p></div>
+    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere.</p></div>
   </div>
 </section>
 
@@ -142,8 +142,8 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
     <div class="step"><div class="step-num">1</div><h3>Snap or Upload</h3><p>Any angle, any lighting. Just get the license in frame.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Extracts, straightens, rotates, and converts to clean B&W.</p></div>
-    <div class="step"><div class="step-num">3</div><h3>Print or Email</h3><p>Perfect photocopy at real license size on standard paper.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, straightened, rotated, converted to B&W.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Print or Email</h3><p>Perfect photocopy on standard paper. Every time.</p></div>
   </div>
 </section>
 
@@ -158,11 +158,9 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <div id="print-area"></div>
 
 <script>
-// CR80 at 300dpi
-const OUT_W = 1013, OUT_H = 638;
-// 8.5x11 at 300dpi
-const PAGE_W = 2550, PAGE_H = 3300;
-const state = { f: null, b: null, corners: { f: null, b: null } };
+const OUT_W = 1013, OUT_H = 638; // CR80 at 300dpi
+const PAGE_W = 2550, PAGE_H = 3300; // 8.5x11 at 300dpi
+const state = { f: null, b: null };
 
 ['f','b'].forEach(s => {
   ['cam-','file-'].forEach(pre => {
@@ -183,46 +181,63 @@ function loadImage(side, file) {
   const url = URL.createObjectURL(file);
   const im = new Image();
   im.onload = () => {
-    state[side] = { img: im, file, url };
+    // Show original as preview
     document.getElementById('prev-'+side).src = url;
     document.getElementById('prev-'+side).classList.add('show');
     document.getElementById('ph-'+side).style.display = 'none';
     document.getElementById('zone-'+side).className = 'zone processing';
-    setZoneStatus(side, '⏳ AI analyzing...', 'working');
-    setStatus('Detecting license...');
-    detectEdges(side, file);
+    setZoneStatus(side, '⏳ Removing background...', 'working');
+    setStatus('Processing license...');
+    processLicense(side, file);
   };
   im.src = url;
 }
 
-async function detectEdges(side, file) {
+async function processLicense(side, file) {
   try {
     const base64 = await fileToBase64(file);
     const mediaType = file.type || 'image/jpeg';
+
     const res = await fetch('/.netlify/functions/detect-edges', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64: base64, mediaType })
     });
+
     const data = await res.json();
-    state.corners[side] = data.error ? null : data;
-    setZoneStatus(side, data.error ? '⚠️ Using full image' : '✅ License detected', data.error ? '' : 'ok');
-    document.getElementById('zone-'+side).className = 'zone ready';
-    checkBothReady();
+
+    if (data.error) throw new Error(data.error);
+
+    // Load cleaned PNG
+    const cleanedImg = new Image();
+    cleanedImg.onload = () => {
+      state[side] = { img: cleanedImg, rotation: data.rotation || 0 };
+      setZoneStatus(side, '✅ Ready', 'ok');
+      document.getElementById('zone-'+side).className = 'zone ready';
+      checkBothReady();
+    };
+    cleanedImg.src = 'data:image/png;base64,' + data.cleanedImage;
+
   } catch(e) {
-    state.corners[side] = null;
-    document.getElementById('zone-'+side).className = 'zone ready';
-    setZoneStatus(side, '⚠️ Using full image', '');
-    checkBothReady();
+    // Fallback: use original image, no rotation
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => {
+      state[side] = { img: im, rotation: 0 };
+      setZoneStatus(side, '⚠️ Background kept', '');
+      document.getElementById('zone-'+side).className = 'zone ready';
+      checkBothReady();
+    };
+    im.src = url;
   }
 }
 
 function checkBothReady() {
-  if (state.f?.img && state.b?.img) {
+  if (state.f && state.b) {
     document.getElementById('go-btn').disabled = false;
     setStatus('Both sides ready — tap Generate PDF.');
   } else {
-    setStatus(!state.f?.img ? 'Add the front of the license.' : 'Add the back of the license.');
+    setStatus(!state.f ? 'Add the front of the license.' : 'Add the back of the license.');
   }
 }
 
@@ -235,181 +250,123 @@ function fileToBase64(file) {
   });
 }
 
-function renderLicense(img, corners) {
-  // Extract and warp to CR80 canvas
+function renderLicense(sideData) {
+  const { img, rotation } = sideData;
   const c = document.createElement('canvas');
   c.width = OUT_W; c.height = OUT_H;
   const ctx = c.getContext('2d');
+
+  // White background
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, OUT_W, OUT_H);
 
-  if (corners && !corners.error) {
-    const iw = img.naturalWidth, ih = img.naturalHeight;
-    const src = [
-      [corners.topLeft.x*iw,     corners.topLeft.y*ih],
-      [corners.topRight.x*iw,    corners.topRight.y*ih],
-      [corners.bottomRight.x*iw, corners.bottomRight.y*ih],
-      [corners.bottomLeft.x*iw,  corners.bottomLeft.y*ih]
-    ];
-    const dst = [[0,0],[OUT_W,0],[OUT_W,OUT_H],[0,OUT_H]];
-    const off = document.createElement('canvas');
-    off.width=iw; off.height=ih;
-    off.getContext('2d').drawImage(img,0,0);
-    const steps=60;
-    for(let y=0;y<steps;y++){
-      for(let x=0;x<steps;x++){
-        const u0=x/steps,u1=(x+1)/steps,v0=y/steps,v1=(y+1)/steps;
-        const bi=(p,u,v)=>({
-          x:p[0][0]*(1-u)*(1-v)+p[1][0]*u*(1-v)+p[3][0]*(1-u)*v+p[2][0]*u*v,
-          y:p[0][1]*(1-u)*(1-v)+p[1][1]*u*(1-v)+p[3][1]*(1-u)*v+p[2][1]*u*v
-        });
-        const s0=bi(src,u0,v0),s1=bi(src,u1,v0),s3=bi(src,u0,v1);
-        const d0=bi(dst,u0,v0),d1=bi(dst,u1,v0),d2=bi(dst,u1,v1),d3=bi(dst,u0,v1);
-        const pw=Math.ceil(iw/steps)+2,ph=Math.ceil(ih/steps)+2;
-        const patch=document.createElement('canvas');
-        patch.width=pw;patch.height=ph;
-        patch.getContext('2d').drawImage(off,s0.x,s0.y,(s1.x-s0.x)||1,(s3.y-s0.y)||1,0,0,pw,ph);
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(d0.x,d0.y);ctx.lineTo(d1.x,d1.y);
-        ctx.lineTo(d2.x,d2.y);ctx.lineTo(d3.x,d3.y);
-        ctx.closePath();ctx.clip();
-        ctx.drawImage(patch,d0.x,d0.y,(d1.x-d0.x)||1,(d3.y-d0.y)||1);
-        ctx.restore();
-      }
-    }
-  } else {
-    const scale=Math.max(OUT_W/img.naturalWidth,OUT_H/img.naturalHeight);
-    const sw=img.naturalWidth*scale,sh=img.naturalHeight*scale;
-    ctx.drawImage(img,(OUT_W-sw)/2,(OUT_H-sh)/2,sw,sh);
-  }
-
   // Rotate if needed
-  const rot = corners?.rotation || 0;
-  let result = c;
-  if (rot !== 0) {
-    const r2 = document.createElement('canvas');
-    if (rot===90||rot===270){r2.width=OUT_H;r2.height=OUT_W;}
-    else{r2.width=OUT_W;r2.height=OUT_H;}
-    const rctx=r2.getContext('2d');
-    rctx.fillStyle='#fff';
-    rctx.fillRect(0,0,r2.width,r2.height);
-    rctx.translate(r2.width/2,r2.height/2);
-    rctx.rotate(rot*Math.PI/180);
-    rctx.drawImage(c,-OUT_W/2,-OUT_H/2);
-    // Scale back to CR80
-    const final=document.createElement('canvas');
-    final.width=OUT_W;final.height=OUT_H;
-    const fctx=final.getContext('2d');
-    fctx.fillStyle='#fff';
-    fctx.fillRect(0,0,OUT_W,OUT_H);
-    const sc=Math.min(OUT_W/r2.width,OUT_H/r2.height);
-    fctx.drawImage(r2,(OUT_W-r2.width*sc)/2,(OUT_H-r2.height*sc)/2,r2.width*sc,r2.height*sc);
-    result=final;
+  ctx.save();
+  ctx.translate(OUT_W/2, OUT_H/2);
+  ctx.rotate((rotation * Math.PI) / 180);
+
+  // Scale to fit after rotation
+  let dw, dh;
+  if (rotation === 90 || rotation === 270) {
+    const scale = Math.min(OUT_W / img.naturalHeight, OUT_H / img.naturalWidth);
+    dw = img.naturalWidth * scale;
+    dh = img.naturalHeight * scale;
+  } else {
+    const scale = Math.min(OUT_W / img.naturalWidth, OUT_H / img.naturalHeight);
+    dw = img.naturalWidth * scale;
+    dh = img.naturalHeight * scale;
   }
 
-  // Convert to clean grayscale (no crazy contrast)
-  const id=result.getContext('2d').getImageData(0,0,OUT_W,OUT_H);
-  const d=id.data;
-  for(let i=0;i<d.length;i+=4){
-    const g=Math.round(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]);
-    d[i]=d[i+1]=d[i+2]=g;
-    d[i+3]=255;
+  ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+  ctx.restore();
+
+  // Convert to grayscale
+  const id = ctx.getImageData(0, 0, OUT_W, OUT_H);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    // If pixel is transparent (from removed bg), make white
+    if (d[i+3] < 128) {
+      d[i]=d[i+1]=d[i+2]=255;
+      d[i+3]=255;
+    } else {
+      const g = Math.round(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
+      d[i]=d[i+1]=d[i+2]=g;
+      d[i+3]=255;
+    }
   }
-  result.getContext('2d').putImageData(id,0,0);
-  return result;
+  ctx.putImageData(id, 0, 0);
+  return c;
 }
 
-function buildPageCanvas() {
-  // 8.5x11 page with both licenses centered
+function buildPage() {
   const page = document.createElement('canvas');
   page.width = PAGE_W; page.height = PAGE_H;
   const ctx = page.getContext('2d');
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0,0,PAGE_W,PAGE_H);
+  ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-  const margin = 150; // ~0.5in at 300dpi
   const gap = 60;
-  const totalH = OUT_H*2+gap;
-  const startX = (PAGE_W-OUT_W)/2;
-  const startY = (PAGE_H-totalH)/2;
+  const totalH = OUT_H * 2 + gap;
+  const startX = Math.round((PAGE_W - OUT_W) / 2);
+  const startY = Math.round((PAGE_H - totalH) / 2);
 
-  const fc = renderLicense(state.f.img, state.corners.f);
-  const bc = renderLicense(state.b.img, state.corners.b);
+  const fc = renderLicense(state.f);
+  const bc = renderLicense(state.b);
 
   ctx.drawImage(fc, startX, startY);
-  ctx.drawImage(bc, startX, startY+OUT_H+gap);
+  ctx.drawImage(bc, startX, startY + OUT_H + gap);
 
-  // Optional: thin border around each
-  ctx.strokeStyle='#ccc';
-  ctx.lineWidth=2;
-  ctx.strokeRect(startX,startY,OUT_W,OUT_H);
-  ctx.strokeRect(startX,startY+OUT_H+gap,OUT_W,OUT_H);
+  // Thin border
+  ctx.strokeStyle = '#bbb';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(startX, startY, OUT_W, OUT_H);
+  ctx.strokeRect(startX, startY + OUT_H + gap, OUT_W, OUT_H);
 
   return page;
 }
 
 function generate() {
-  setStatus('Generating...');
+  setStatus('Building PDF...');
   document.getElementById('go-btn').disabled = true;
 
-  const page = buildPageCanvas();
+  const page = buildPage();
 
-  // Show preview (scaled down)
+  // Preview scaled down
   const prev = document.getElementById('preview-canvas');
-  const scale = 440/PAGE_W;
-  prev.width = 440;
-  prev.height = Math.round(PAGE_H*scale);
-  prev.getContext('2d').drawImage(page,0,0,prev.width,prev.height);
+  const scale = 420 / PAGE_W;
+  prev.width = 420;
+  prev.height = Math.round(PAGE_H * scale);
+  prev.getContext('2d').drawImage(page, 0, 0, prev.width, prev.height);
 
-  document.getElementById('output').style.display='block';
-  document.getElementById('output').scrollIntoView({behavior:'smooth'});
-  document.getElementById('go-btn').disabled=false;
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('go-btn').disabled = false;
   setStatus('✅ Ready to print or email.');
 }
 
 function printLicense() {
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit:'in', format:'letter', orientation:'portrait' });
-  const page = buildPageCanvas();
-  // Fill full 8.5x11 — licenses are sized relative to page
-  pdf.addImage(page.toDataURL('image/jpeg',0.95),'JPEG',0,0,8.5,11);
+  const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+  const page = buildPage();
+  pdf.addImage(page.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 8.5, 11);
   pdf.autoPrint();
   window.open(pdf.output('bloburl'));
 }
 
 function emailPDF() {
   const email = document.getElementById('email-input').value.trim();
-  if(!email){alert('Please enter an email address.');return;}
+  if (!email) { alert('Please enter an email address.'); return; }
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit:'in', format:'letter', orientation:'portrait' });
-  const page = buildPageCanvas();
-  pdf.addImage(page.toDataURL('image/jpeg',0.95),'JPEG',0,0,8.5,11);
-  const blob = pdf.output('blob');
+  const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+  const page = buildPage();
+  pdf.addImage(page.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 8.5, 11);
   const a = document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='license-copy.pdf';
+  a.href = URL.createObjectURL(pdf.output('blob'));
+  a.download = 'license-copy.pdf';
   a.click();
-  setTimeout(()=>{
-    window.location.href=`mailto:${email}?subject=License%20Copy&body=License%20PDF%20attached%20(license-copy.pdf%20downloaded%20to%20your%20device).`;
-  },600);
-}
-
-function emailPDF() {
-  const email = document.getElementById('email-input').value.trim();
-  if(!email){alert('Please enter an email address.');return;}
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit:'in', format:'letter', orientation:'portrait' });
-  const page = buildPageCanvas();
-  pdf.addImage(page.toDataURL('image/jpeg',0.95),'JPEG',0,0,8.5,11);
-  const blob = pdf.output('blob');
-  const a = document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='license-copy.pdf';
-  a.click();
-  setTimeout(()=>{
-    window.location.href=`mailto:${email}?subject=License%20Copy&body=License%20PDF%20attached%20(license-copy.pdf%20downloaded%20to%20your%20device).`;
-  },600);
+  setTimeout(() => {
+    window.location.href = `mailto:${email}?subject=License%20Copy&body=License%20PDF%20downloaded%20as%20license-copy.pdf%20-%20please%20attach%20to%20this%20email.`;
+  }, 600);
 }
 </script>
 </body>
