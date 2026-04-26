@@ -440,7 +440,7 @@ function buildPage() {
 
   const startX = Math.round((PAGE_W - OUT_W) / 2);
   const topY = 300;
-  const bottomY = Math.round(PAGE_H * 0.58);
+  const bottomY = topY + OUT_H + 300;
 
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
