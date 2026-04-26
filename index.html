@@ -323,7 +323,7 @@ function renderLicense(sideData) {
   octx.clip();
 
   // Fill with license image scaled to cover perfectly
-  const scale = Math.max(OUT_W / rotated.width, OUT_H / rotated.height);
+  const scale = Math.min(OUT_W / rotated.width, OUT_H / rotated.height);
   const dw = rotated.width * scale, dh = rotated.height * scale;
   octx.drawImage(rotated, (OUT_W - dw) / 2, (OUT_H - dh) / 2, dw, dh);
   octx.restore();
@@ -356,7 +356,43 @@ function buildPage() {
   const bc = renderLicense(state.b);
 
   ctx.drawImage(fc, startX, topY, OUT_W, OUT_H);
+  // Thin gray border around front
+  ctx.save();
+  ctx.strokeStyle = '#aaaaaa';
+  ctx.lineWidth = 2;
+  const r = Math.round(OUT_W * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(startX + r, topY);
+  ctx.lineTo(startX + OUT_W - r, topY);
+  ctx.quadraticCurveTo(startX + OUT_W, topY, startX + OUT_W, topY + r);
+  ctx.lineTo(startX + OUT_W, topY + OUT_H - r);
+  ctx.quadraticCurveTo(startX + OUT_W, topY + OUT_H, startX + OUT_W - r, topY + OUT_H);
+  ctx.lineTo(startX + r, topY + OUT_H);
+  ctx.quadraticCurveTo(startX, topY + OUT_H, startX, topY + OUT_H - r);
+  ctx.lineTo(startX, topY + r);
+  ctx.quadraticCurveTo(startX, topY, startX + r, topY);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+
   ctx.drawImage(bc, startX, bottomY, OUT_W, OUT_H);
+  // Thin gray border around back
+  ctx.save();
+  ctx.strokeStyle = '#aaaaaa';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(startX + r, bottomY);
+  ctx.lineTo(startX + OUT_W - r, bottomY);
+  ctx.quadraticCurveTo(startX + OUT_W, bottomY, startX + OUT_W, bottomY + r);
+  ctx.lineTo(startX + OUT_W, bottomY + OUT_H - r);
+  ctx.quadraticCurveTo(startX + OUT_W, bottomY + OUT_H, startX + OUT_W - r, bottomY + OUT_H);
+  ctx.lineTo(startX + r, bottomY + OUT_H);
+  ctx.quadraticCurveTo(startX, bottomY + OUT_H, startX, bottomY + OUT_H - r);
+  ctx.lineTo(startX, bottomY + r);
+  ctx.quadraticCurveTo(startX, bottomY, startX + r, bottomY);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
 
   return page;
 }
