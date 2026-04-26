@@ -32,7 +32,7 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 .zone-placeholder .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
 .btn-row { display: flex; gap: 8px; }
 .btn-row label { flex: 1; display: block; text-align: center; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; border: 1.5px solid #000; color: #000; background: transparent; }
-.btn-row label.cam { background: #000; color: #fff; }
+.btn-row .cam-btn { flex: 1; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; background: #000; color: #fff; border: none; }
 input[type=file] { display: none; }
 .status { text-align: center; font-size: 0.8rem; color: #0070ba; min-height: 20px; margin: 12px 0; }
 .go-btn { display: block; width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: opacity 0.2s; }
@@ -43,10 +43,6 @@ input[type=file] { display: none; }
 .preview-wrap canvas { max-width: 100%; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); background: #fff; }
 .action-btns { display: flex; gap: 10px; flex-direction: column; }
 .print-btn { display: block; width: 100%; padding: 14px; background: #0070ba; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; }
-.email-row { display: flex; gap: 8px; }
-.email-input { flex: 1; padding: 12px 16px; border: 1.5px solid #ddd; border-radius: 22px; font-size: 0.88rem; outline: none; }
-.email-input:focus { border-color: #0070ba; }
-.email-btn { padding: 12px 20px; background: transparent; border: 1.5px solid #000; border-radius: 22px; font-size: 0.88rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .features { max-width: 900px; margin: 0 auto; padding: 64px 24px; }
 .features h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 36px; }
 .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
@@ -69,9 +65,60 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   #print-area { display: block !important; }
 }
 #print-area { display: none; }
+
+/* CAMERA MODAL */
+#camera-modal { display: none; position: fixed; inset: 0; background: #000; z-index: 999; flex-direction: column; align-items: center; justify-content: center; }
+#camera-modal.active { display: flex; }
+#camera-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#camera-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.overlay-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+.overlay-cutout {
+  position: relative; z-index: 2;
+  width: 88vw; max-width: 420px;
+  aspect-ratio: 3.375 / 2.125;
+  border-radius: 4.5%;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+  border: 2px solid rgba(255,255,255,0.8);
+}
+.overlay-corner { position: absolute; width: 24px; height: 24px; border-color: #0070ba; border-style: solid; border-width: 0; }
+.overlay-corner.tl { top: -2px; left: -2px; border-top-width: 4px; border-left-width: 4px; border-radius: 4px 0 0 0; }
+.overlay-corner.tr { top: -2px; right: -2px; border-top-width: 4px; border-right-width: 4px; border-radius: 0 4px 0 0; }
+.overlay-corner.bl { bottom: -2px; left: -2px; border-bottom-width: 4px; border-left-width: 4px; border-radius: 0 0 0 4px; }
+.overlay-corner.br { bottom: -2px; right: -2px; border-bottom-width: 4px; border-right-width: 4px; border-radius: 0 0 4px 0; }
+.overlay-hint { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 0.82rem; font-weight: 600; white-space: nowrap; opacity: 0.9; z-index: 3; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.cam-label { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 0.95rem; font-weight: 800; z-index: 10; background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px; white-space: nowrap; }
+.camera-controls { position: absolute; bottom: 48px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 48px; z-index: 10; }
+.cam-cancel { color: #fff; font-size: 0.95rem; font-weight: 700; background: none; border: none; cursor: pointer; padding: 12px; }
+.cam-capture { width: 76px; height: 76px; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px rgba(255,255,255,0.25); transition: transform 0.1s; }
+.cam-capture:active { transform: scale(0.95); }
+.cam-capture-inner { width: 58px; height: 58px; border-radius: 50%; background: #fff; border: 2px solid #ddd; }
 </style>
 </head>
 <body>
+
+<!-- CAMERA MODAL -->
+<div id="camera-modal">
+  <video id="camera-video" autoplay playsinline muted></video>
+  <div class="cam-label" id="cam-label">Front of License</div>
+  <div id="camera-overlay">
+    <div class="overlay-dim"></div>
+    <div class="overlay-cutout">
+      <div class="overlay-corner tl"></div>
+      <div class="overlay-corner tr"></div>
+      <div class="overlay-corner bl"></div>
+      <div class="overlay-corner br"></div>
+      <div class="overlay-hint">Align license inside the frame</div>
+    </div>
+  </div>
+  <div class="camera-controls">
+    <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
+    <button class="cam-capture" onclick="capturePhoto()">
+      <div class="cam-capture-inner"></div>
+    </button>
+    <div style="width:60px"></div>
+  </div>
+</div>
+<canvas id="capture-canvas" style="display:none"></canvas>
 
 <nav>
   <div class="logo">InstaPrint<span>ID</span></div>
@@ -82,7 +129,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   <h1>Snap, fix,<br>and print.</h1>
   <div class="hero-card">
     <h2>InstaPrintID</h2>
-    <p>Upload any photo of a driver's license. AI removes the background, straightens it, and produces a clean black & white photocopy — ready to print or email in seconds.</p>
+    <p>Upload any photo of a driver's license. AI removes the background, straightens it, and produces a clean black & white photocopy — ready to print in seconds.</p>
 
     <div class="upload-grid">
       <div class="zone" id="zone-f">
@@ -91,10 +138,9 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="zone-placeholder" id="ph-f"><span class="icon">🪪</span>Front of License</div>
         <div class="zone-status" id="st-f"></div>
         <div class="btn-row">
-          <label class="cam" for="cam-f">📷 Camera</label>
+          <button class="cam-btn" onclick="openCamera('f')">📷 Camera</button>
           <label for="file-f">📁 Upload</label>
         </div>
-        <input type="file" id="cam-f" accept="image/*" capture="environment">
         <input type="file" id="file-f" accept="image/*">
       </div>
       <div class="zone" id="zone-b">
@@ -103,10 +149,9 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="zone-placeholder" id="ph-b"><span class="icon">🪪</span>Back of License</div>
         <div class="zone-status" id="st-b"></div>
         <div class="btn-row">
-          <label class="cam" for="cam-b">📷 Camera</label>
+          <button class="cam-btn" onclick="openCamera('b')">📷 Camera</button>
           <label for="file-b">📁 Upload</label>
         </div>
-        <input type="file" id="cam-b" accept="image/*" capture="environment">
         <input type="file" id="file-b" accept="image/*">
       </div>
     </div>
@@ -128,19 +173,19 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="features">
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
+    <div class="feat"><div class="feat-icon">📷</div><h3>Guided Camera</h3><p>CR80 outline guides you to frame the license perfectly before you snap.</p></div>
     <div class="feat"><div class="feat-icon">✂️</div><h3>Background Removed</h3><p>AI strips everything except the license — no table, no hand, no clutter.</p></div>
-    <div class="feat"><div class="feat-icon">🔄</div><h3>Auto-Rotate</h3><p>Sideways or upside down? Automatically corrected every time.</p></div>
     <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
-    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere.</p></div>
+    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere. Ever.</p></div>
   </div>
 </section>
 
 <section class="how">
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><h3>Snap or Upload</h3><p>Any angle, any lighting. Just get the license in frame.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, straightened, rotated, converted to B&W.</p></div>
-    <div class="step"><div class="step-num">3</div><h3>Print or Email</h3><p>Perfect photocopy on standard paper. Every time.</p></div>
+    <div class="step"><div class="step-num">1</div><h3>Align & Snap</h3><p>Use the guided camera to frame the license perfectly inside the outline.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, straightened, rotated, converted to B&W automatically.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Print or Download</h3><p>Perfect photocopy on standard 8.5"×11" paper. Every time.</p></div>
   </div>
 </section>
 
@@ -155,30 +200,59 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <div id="print-area"></div>
 
 <script>
-const OUT_W = 1013, OUT_H = 638; // CR80 at 300dpi = 3.375" x 2.125"
+const OUT_W = 1013, OUT_H = 638; // CR80 at 300dpi
 const PAGE_W = 2550, PAGE_H = 3300; // 8.5x11 at 300dpi
+const CR80_RATIO = OUT_W / OUT_H;
 const state = { f: null, b: null };
+let currentSide = null;
+let videoStream = null;
 
+// File upload listeners
 ['f','b'].forEach(s => {
-  ['cam-','file-'].forEach(pre => {
-    document.getElementById(pre+s).addEventListener('change', function() {
-      if (this.files[0]) loadImage(s, this.files[0]);
-    });
+  document.getElementById('file-'+s).addEventListener('change', function() {
+    if (this.files[0]) handleFile(s, this.files[0]);
   });
 });
 
-function setStatus(msg) { document.getElementById('status').textContent = msg; }
-function setZoneStatus(s, msg, cls) {
-  const el = document.getElementById('st-'+s);
-  el.textContent = msg;
-  el.className = 'zone-status' + (cls ? ' '+cls : '');
+// ── CAMERA ──────────────────────────────────────────────
+async function openCamera(side) {
+  currentSide = side;
+  document.getElementById('cam-label').textContent = side === 'f' ? 'Front of License' : 'Back of License';
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    document.getElementById('camera-video').srcObject = videoStream;
+    document.getElementById('camera-modal').classList.add('active');
+  } catch(e) {
+    alert('Camera access denied. Please use the Upload button instead.');
+  }
 }
 
-function loadImage(side, file) {
+function closeCamera() {
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  document.getElementById('camera-modal').classList.remove('active');
+  document.getElementById('camera-video').srcObject = null;
+}
+
+function capturePhoto() {
+  const video = document.getElementById('camera-video');
+  const canvas = document.getElementById('capture-canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    closeCamera();
+    handleFile(currentSide, blob);
+  }, 'image/jpeg', 0.95);
+}
+
+// ── IMAGE HANDLING ───────────────────────────────────────
+function handleFile(side, file) {
   const url = URL.createObjectURL(file);
   const im = new Image();
   im.onload = () => {
-    // Show original as preview
     document.getElementById('prev-'+side).src = url;
     document.getElementById('prev-'+side).classList.add('show');
     document.getElementById('ph-'+side).style.display = 'none';
@@ -194,17 +268,13 @@ async function processLicense(side, file) {
   try {
     const base64 = await fileToBase64(file);
     const mediaType = file.type || 'image/jpeg';
-
     const res = await fetch('/.netlify/functions/detect-edges', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64: base64, mediaType })
     });
-
     const data = await res.json();
-
     if (data.error) throw new Error(data.error);
-
     const cleanedImg = new Image();
     cleanedImg.onload = () => {
       state[side] = { img: cleanedImg, rotation: data.rotation || 0 };
@@ -213,9 +283,7 @@ async function processLicense(side, file) {
       checkBothReady();
     };
     cleanedImg.src = 'data:image/png;base64,' + data.cleanedImage;
-
   } catch(e) {
-    // Fallback: use original image, no rotation
     const url = URL.createObjectURL(file);
     const im = new Image();
     im.onload = () => {
@@ -228,6 +296,12 @@ async function processLicense(side, file) {
   }
 }
 
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+function setZoneStatus(s, msg, cls) {
+  const el = document.getElementById('st-'+s);
+  el.textContent = msg;
+  el.className = 'zone-status' + (cls ? ' '+cls : '');
+}
 function checkBothReady() {
   if (state.f && state.b) {
     document.getElementById('go-btn').disabled = false;
@@ -236,7 +310,6 @@ function checkBothReady() {
     setStatus(!state.f ? 'Add the front of the license.' : 'Add the back of the license.');
   }
 }
-
 function fileToBase64(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -246,39 +319,36 @@ function fileToBase64(file) {
   });
 }
 
+// ── RENDER LICENSE ───────────────────────────────────────
 function renderLicense(sideData) {
   const { img, rotation } = sideData;
 
-  // Step 1: Draw cleaned PNG to temp canvas
+  // 1. Draw cleaned image to temp canvas
   const tmp = document.createElement('canvas');
   tmp.width = img.naturalWidth; tmp.height = img.naturalHeight;
   const tctx = tmp.getContext('2d');
   tctx.drawImage(img, 0, 0);
 
-  // Step 2: Find bounding box of non-transparent pixels
+  // 2. Find bounding box of non-transparent pixels
   const id = tctx.getImageData(0, 0, tmp.width, tmp.height);
   const d = id.data;
   let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
   for (let y = 0; y < tmp.height; y++) {
     for (let x = 0; x < tmp.width; x++) {
-      const a = d[(y * tmp.width + x) * 4 + 3];
-      if (a > 30) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+      if (d[(y * tmp.width + x) * 4 + 3] > 30) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
       }
     }
   }
 
-  // Step 3: Crop to bounding box
-  const cropW = maxX - minX + 1;
-  const cropH = maxY - minY + 1;
+  // 3. Crop to bounding box
+  const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
   const cropped = document.createElement('canvas');
   cropped.width = cropW; cropped.height = cropH;
   cropped.getContext('2d').drawImage(tmp, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
 
-  // Step 4: Rotate
+  // 4. Rotate if needed
   let rotated = cropped;
   if (rotation !== 0) {
     const r = document.createElement('canvas');
@@ -293,22 +363,29 @@ function renderLicense(sideData) {
     rotated = r;
   }
 
-  // Step 5: Scale to fill CR80 output
+  // 5. Center-crop to exact CR80 aspect ratio
+  const imgRatio = rotated.width / rotated.height;
+  let cx = 0, cy = 0, cw = rotated.width, ch = rotated.height;
+  if (imgRatio > CR80_RATIO) {
+    cw = Math.round(rotated.height * CR80_RATIO);
+    cx = Math.round((rotated.width - cw) / 2);
+  } else {
+    ch = Math.round(rotated.width / CR80_RATIO);
+    cy = Math.round((rotated.height - ch) / 2);
+  }
+
+  // 6. Output canvas at exact CR80 size
   const out = document.createElement('canvas');
   out.width = OUT_W; out.height = OUT_H;
   const octx = out.getContext('2d');
   octx.fillStyle = '#fff';
   octx.fillRect(0, 0, OUT_W, OUT_H);
-  // Draw perfect CR80 rectangle with rounded corners
-  const radius = Math.round(OUT_W * 0.04);
-  octx.fillStyle = '#fff';
-  octx.fillRect(0, 0, OUT_W, OUT_H);
 
-  // Clip to perfect rounded rectangle
+  // 7. Clip to perfect CR80 rounded rectangle
+  const radius = Math.round(OUT_W * 0.04);
   octx.save();
   octx.beginPath();
-  octx.moveTo(radius, 0);
-  octx.lineTo(OUT_W - radius, 0);
+  octx.moveTo(radius, 0); octx.lineTo(OUT_W - radius, 0);
   octx.quadraticCurveTo(OUT_W, 0, OUT_W, radius);
   octx.lineTo(OUT_W, OUT_H - radius);
   octx.quadraticCurveTo(OUT_W, OUT_H, OUT_W - radius, OUT_H);
@@ -319,23 +396,39 @@ function renderLicense(sideData) {
   octx.closePath();
   octx.clip();
 
-  // Fill with license image scaled to cover perfectly
-  const scale = Math.max(OUT_W / rotated.width, OUT_H / rotated.height);
-  const dw = rotated.width * scale, dh = rotated.height * scale;
-  octx.drawImage(rotated, (OUT_W - dw) / 2, (OUT_H - dh) / 2, dw, dh);
+  // 8. Draw license filling the frame exactly — no distortion
+  octx.drawImage(rotated, cx, cy, cw, ch, 0, 0, OUT_W, OUT_H);
   octx.restore();
 
-  // Convert to grayscale
-
-  // Step 6: Convert to grayscale
+  // 9. Convert to clean grayscale
   const gid = octx.getImageData(0, 0, OUT_W, OUT_H);
   const gd = gid.data;
   for (let i = 0; i < gd.length; i += 4) {
     if (gd[i+3] < 30) { gd[i]=gd[i+1]=gd[i+2]=255; gd[i+3]=255; }
-    else { const g=Math.round(0.299*gd[i]+0.587*gd[i+1]+0.114*gd[i+2]); gd[i]=gd[i+1]=gd[i+2]=g; gd[i+3]=255; }
+    else { const g = Math.round(0.299*gd[i] + 0.587*gd[i+1] + 0.114*gd[i+2]); gd[i]=gd[i+1]=gd[i+2]=g; gd[i+3]=255; }
   }
   octx.putImageData(gid, 0, 0);
   return out;
+}
+
+// ── PAGE LAYOUT ──────────────────────────────────────────
+function drawBorder(ctx, x, y, w, h) {
+  const r = Math.round(w * 0.04);
+  ctx.save();
+  ctx.strokeStyle = '#aaaaaa';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
 }
 
 function buildPage() {
@@ -345,59 +438,25 @@ function buildPage() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-  const startX = Math.round(PAGE_W * 0.52); // right side of page
-  const topY = 200;
-  const bottomY = Math.round(PAGE_H * 0.62);
+  const startX = Math.round((PAGE_W - OUT_W) / 2);
+  const topY = 300;
+  const bottomY = Math.round(PAGE_H * 0.58);
 
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
 
   ctx.drawImage(fc, startX, topY, OUT_W, OUT_H);
-  // Thin gray border around front
-  ctx.save();
-  ctx.strokeStyle = '#aaaaaa';
-  ctx.lineWidth = 2;
-  const r = Math.round(OUT_W * 0.04);
-  ctx.beginPath();
-  ctx.moveTo(startX + r, topY);
-  ctx.lineTo(startX + OUT_W - r, topY);
-  ctx.quadraticCurveTo(startX + OUT_W, topY, startX + OUT_W, topY + r);
-  ctx.lineTo(startX + OUT_W, topY + OUT_H - r);
-  ctx.quadraticCurveTo(startX + OUT_W, topY + OUT_H, startX + OUT_W - r, topY + OUT_H);
-  ctx.lineTo(startX + r, topY + OUT_H);
-  ctx.quadraticCurveTo(startX, topY + OUT_H, startX, topY + OUT_H - r);
-  ctx.lineTo(startX, topY + r);
-  ctx.quadraticCurveTo(startX, topY, startX + r, topY);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
-
+  drawBorder(ctx, startX, topY, OUT_W, OUT_H);
   ctx.drawImage(bc, startX, bottomY, OUT_W, OUT_H);
-  // Thin gray border around back
-  ctx.save();
-  ctx.strokeStyle = '#aaaaaa';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(startX + r, bottomY);
-  ctx.lineTo(startX + OUT_W - r, bottomY);
-  ctx.quadraticCurveTo(startX + OUT_W, bottomY, startX + OUT_W, bottomY + r);
-  ctx.lineTo(startX + OUT_W, bottomY + OUT_H - r);
-  ctx.quadraticCurveTo(startX + OUT_W, bottomY + OUT_H, startX + OUT_W - r, bottomY + OUT_H);
-  ctx.lineTo(startX + r, bottomY + OUT_H);
-  ctx.quadraticCurveTo(startX, bottomY + OUT_H, startX, bottomY + OUT_H - r);
-  ctx.lineTo(startX, bottomY + r);
-  ctx.quadraticCurveTo(startX, bottomY, startX + r, bottomY);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
+  drawBorder(ctx, startX, bottomY, OUT_W, OUT_H);
 
   return page;
 }
 
+// ── GENERATE / PRINT / DOWNLOAD ──────────────────────────
 function generate() {
   setStatus('Building PDF...');
   document.getElementById('go-btn').disabled = true;
-
   setTimeout(() => {
     try {
       const page = buildPage();
@@ -408,10 +467,8 @@ function generate() {
       prev.getContext('2d').drawImage(page, 0, 0, prev.width, prev.height);
       document.getElementById('output').style.display = 'block';
       document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
-      setStatus('✅ Ready to print or email.');
-    } catch(e) {
-      setStatus('Error: ' + e.message);
-    }
+      setStatus('✅ Ready to print or download.');
+    } catch(e) { setStatus('Error: ' + e.message); }
     document.getElementById('go-btn').disabled = false;
   }, 100);
 }
