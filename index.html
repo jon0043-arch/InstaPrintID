@@ -243,7 +243,7 @@ function capturePhoto() {
   canvas.toBlob(blob => {
     closeCamera();
     handleFile(currentSide, blob);
-  }, 'image/jpeg', 0.95);
+  }, 'image/jpeg', 1.0);
 }
 
 // ── IMAGE HANDLING ───────────────────────────────────────
@@ -350,17 +350,21 @@ function renderLicense(sideData) {
   cropped.width = cropW; cropped.height = cropH;
   cropped.getContext('2d').drawImage(tmp, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-  // 4. Rotate if needed
+  // 4. Auto-rotate based on aspect ratio — license should always be landscape
   let rotated = cropped;
-  if (rotation !== 0) {
+  const isPortrait = cropped.height > cropped.width;
+  const autoRotation = isPortrait ? 90 : 0;
+  const finalRotation = autoRotation !== 0 ? autoRotation : (sideData.rotation || 0);
+
+  if (finalRotation !== 0) {
     const r = document.createElement('canvas');
-    if (rotation === 90 || rotation === 270) { r.width = cropH; r.height = cropW; }
+    if (finalRotation === 90 || finalRotation === 270) { r.width = cropH; r.height = cropW; }
     else { r.width = cropW; r.height = cropH; }
     const rctx = r.getContext('2d');
     rctx.fillStyle = '#fff';
     rctx.fillRect(0, 0, r.width, r.height);
     rctx.translate(r.width/2, r.height/2);
-    rctx.rotate(rotation * Math.PI / 180);
+    rctx.rotate(finalRotation * Math.PI / 180);
     rctx.drawImage(cropped, -cropW/2, -cropH/2);
     rotated = r;
   }
@@ -477,7 +481,7 @@ function printLicense() {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
   const page = buildPage();
-  pdf.addImage(page.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 8.5, 11);
+  pdf.addImage(page.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, 8.5, 11);
   pdf.autoPrint();
   window.open(pdf.output('bloburl'));
 }
@@ -486,7 +490,7 @@ function downloadPDF() {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
   const page = buildPage();
-  pdf.addImage(page.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 8.5, 11);
+  pdf.addImage(page.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, 8.5, 11);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(pdf.output('blob'));
   a.download = 'license-copy.pdf';
