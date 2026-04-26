@@ -119,10 +119,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
       <div class="preview-wrap"><canvas id="preview-canvas"></canvas></div>
       <div class="action-btns">
         <button class="print-btn" onclick="printLicense()">🖨️ Print</button>
-        <div class="email-row">
-          <input type="email" class="email-input" id="email-input" placeholder="Enter email address">
-          <button class="email-btn" onclick="emailPDF()">📧 Email PDF</button>
-        </div>
+        <button class="print-btn" style="margin-top:10px;background:#333" onclick="downloadPDF()">⬇️ Download PDF</button>
       </div>
     </div>
   </div>
@@ -323,7 +320,7 @@ function renderLicense(sideData) {
   octx.clip();
 
   // Fill with license image scaled to cover perfectly
-  const scale = Math.min(OUT_W / rotated.width, OUT_H / rotated.height);
+  const scale = Math.max(OUT_W / rotated.width, OUT_H / rotated.height);
   const dw = rotated.width * scale, dh = rotated.height * scale;
   octx.drawImage(rotated, (OUT_W - dw) / 2, (OUT_H - dh) / 2, dw, dh);
   octx.restore();
@@ -348,9 +345,9 @@ function buildPage() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-  const startX = Math.round((PAGE_W - OUT_W) / 2);
+  const startX = Math.round(PAGE_W * 0.52); // right side of page
   const topY = 200;
-  const bottomY = topY + OUT_H + 180;
+  const bottomY = Math.round(PAGE_H * 0.62);
 
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
@@ -428,9 +425,7 @@ function printLicense() {
   window.open(pdf.output('bloburl'));
 }
 
-function emailPDF() {
-  const email = document.getElementById('email-input').value.trim();
-  if (!email) { alert('Please enter an email address.'); return; }
+function downloadPDF() {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
   const page = buildPage();
@@ -439,9 +434,6 @@ function emailPDF() {
   a.href = URL.createObjectURL(pdf.output('blob'));
   a.download = 'license-copy.pdf';
   a.click();
-  setTimeout(() => {
-    window.location.href = `mailto:${email}?subject=License%20Copy&body=License%20PDF%20downloaded%20as%20license-copy.pdf%20-%20please%20attach%20to%20this%20email.`;
-  }, 600);
 }
 </script>
 </body>
