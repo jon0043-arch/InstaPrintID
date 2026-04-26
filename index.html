@@ -208,15 +208,19 @@ async function processLicense(side, file) {
 
     if (data.error) throw new Error(data.error);
 
-    // Load cleaned PNG
-    const cleanedImg = new Image();
-    cleanedImg.onload = () => {
-      state[side] = { img: cleanedImg, rotation: data.rotation || 0 };
-      setZoneStatus(side, '✅ Ready', 'ok');
-      document.getElementById('zone-'+side).className = 'zone ready';
-      checkBothReady();
+    // Load original image too for homography warp
+    const origImg = new Image();
+    origImg.onload = () => {
+      const cleanedImg = new Image();
+      cleanedImg.onload = () => {
+        state[side] = { img: cleanedImg, origImg, rotation: data.rotation || 0, corners: data.corners || null };
+        setZoneStatus(side, '✅ Ready', 'ok');
+        document.getElementById('zone-'+side).className = 'zone ready';
+        checkBothReady();
+      };
+      cleanedImg.src = 'data:image/png;base64,' + data.cleanedImage;
     };
-    cleanedImg.src = 'data:image/png;base64,' + data.cleanedImage;
+    origImg.src = URL.createObjectURL(file);
 
   } catch(e) {
     // Fallback: use original image, no rotation
@@ -250,51 +254,112 @@ function fileToBase64(file) {
   });
 }
 
+function getPerspectiveTransform(src, dst) {
+  // Compute 3x3 homography matrix from 4 point correspondences
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) {
+    const [sx, sy] = src[i];
+    const [dx, dy] = dst[i];
+    A.push([sx, sy, 1, 0, 0, 0, -dx*sx, -dx*sy]);
+    A.push([0, 0, 0, sx, sy, 1, -dy*sx, -dy*sy]);
+    b.push(dx);
+    b.push(dy);
+  }
+  // Gaussian elimination
+  const n = 8;
+  const M = A.map((row, i) => [...row, b[i]]);
+  for (let col = 0; col < n; col++) {
+    let maxRow = col;
+    for (let row = col+1; row < n; row++) if (Math.abs(M[row][col]) > Math.abs(M[maxRow][col])) maxRow = row;
+    [M[col], M[maxRow]] = [M[maxRow], M[col]];
+    for (let row = col+1; row < n; row++) {
+      const f = M[row][col] / M[col][col];
+      for (let j = col; j <= n; j++) M[row][j] -= f * M[col][j];
+    }
+  }
+  const x = new Array(n).fill(0);
+  for (let i = n-1; i >= 0; i--) {
+    x[i] = M[i][n] / M[i][i];
+    for (let j = i-1; j >= 0; j--) M[j][n] -= M[j][i] * x[i];
+  }
+  return [...x, 1];
+}
+
+function applyHomography(h, px, py) {
+  const w = h[6]*px + h[7]*py + h[8];
+  return [(h[0]*px + h[1]*py + h[2]) / w, (h[3]*px + h[4]*py + h[5]) / w];
+}
+
 function renderLicense(sideData) {
-  const { img, rotation } = sideData;
+  const { img, rotation, corners } = sideData;
   const c = document.createElement('canvas');
   c.width = OUT_W; c.height = OUT_H;
   const ctx = c.getContext('2d');
-
-  // White background
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, OUT_W, OUT_H);
 
-  // Rotate if needed
-  ctx.save();
-  ctx.translate(OUT_W/2, OUT_H/2);
-  ctx.rotate((rotation * Math.PI) / 180);
+  if (corners && corners.topLeft && corners.imageWidth) {
+    // Full perspective warp from original photo corners to output
+    const iw = corners.imageWidth, ih = corners.imageHeight;
+    const src = [
+      [corners.topLeft.x,     corners.topLeft.y],
+      [corners.topRight.x,    corners.topRight.y],
+      [corners.bottomRight.x, corners.bottomRight.y],
+      [corners.bottomLeft.x,  corners.bottomLeft.y]
+    ];
+    const dst = [[0,0],[OUT_W,0],[OUT_W,OUT_H],[0,OUT_H]];
 
-  // Scale to fit after rotation
-  let dw, dh;
-  if (rotation === 90 || rotation === 270) {
-    const scale = Math.max(OUT_W / img.naturalHeight, OUT_H / img.naturalWidth);
-    dw = img.naturalWidth * scale;
-    dh = img.naturalHeight * scale;
-  } else {
-    const scale = Math.max(OUT_W / img.naturalWidth, OUT_H / img.naturalHeight);
-    dw = img.naturalWidth * scale;
-    dh = img.naturalHeight * scale;
-  }
+    // Draw original image to offscreen
+    const off = document.createElement('canvas');
+    off.width = iw; off.height = ih;
+    off.getContext('2d').drawImage(sideData.origImg || img, 0, 0, iw, ih);
 
-  ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
-  ctx.restore();
+    // Inverse homography: dst->src so we can sample
+    const H = getPerspectiveTransform(dst, src);
 
-  // Convert to grayscale
-  const id = ctx.getImageData(0, 0, OUT_W, OUT_H);
-  const d = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    // If pixel is transparent (from removed bg), make white
-    if (d[i+3] < 128) {
-      d[i]=d[i+1]=d[i+2]=255;
-      d[i+3]=255;
-    } else {
-      const g = Math.round(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
-      d[i]=d[i+1]=d[i+2]=g;
-      d[i+3]=255;
+    const id = ctx.createImageData(OUT_W, OUT_H);
+    const offCtx = off.getContext('2d');
+    const srcData = offCtx.getImageData(0, 0, iw, ih);
+
+    for (let y = 0; y < OUT_H; y++) {
+      for (let x = 0; x < OUT_W; x++) {
+        const [sx, sy] = applyHomography(H, x, y);
+        const si = Math.round(sy), sj = Math.round(sx);
+        const di = (y * OUT_W + x) * 4;
+        if (si >= 0 && si < ih && sj >= 0 && sj < iw) {
+          const si2 = (si * iw + sj) * 4;
+          // Grayscale directly
+          const g = Math.round(0.299*srcData.data[si2] + 0.587*srcData.data[si2+1] + 0.114*srcData.data[si2+2]);
+          id.data[di]=id.data[di+1]=id.data[di+2]=g;
+          id.data[di+3]=255;
+        } else {
+          id.data[di]=id.data[di+1]=id.data[di+2]=255;
+          id.data[di+3]=255;
+        }
+      }
     }
+    ctx.putImageData(id, 0, 0);
+  } else {
+    // Fallback: use cleaned image, rotate and scale
+    ctx.save();
+    ctx.translate(OUT_W/2, OUT_H/2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    const scale = Math.min(OUT_W/img.naturalWidth, OUT_H/img.naturalHeight);
+    const dw = img.naturalWidth*scale, dh = img.naturalHeight*scale;
+    ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+    ctx.restore();
+
+    // Grayscale
+    const id = ctx.getImageData(0, 0, OUT_W, OUT_H);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i+3] < 128) { d[i]=d[i+1]=d[i+2]=255; d[i+3]=255; }
+      else { const g=Math.round(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]); d[i]=d[i+1]=d[i+2]=g; d[i+3]=255; }
+    }
+    ctx.putImageData(id, 0, 0);
   }
-  ctx.putImageData(id, 0, 0);
+
+  // Apply rotation if no corners (fallback only)
   return c;
 }
 
@@ -305,22 +370,25 @@ function buildPage() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-  const gap = 60;
-  const totalH = OUT_H * 2 + gap;
-  const startX = Math.round((PAGE_W - OUT_W) / 2);
+  const gap = 80;
+  const margin = 100;
+  const availW = PAGE_W - margin * 2;
+  const licW = availW;
+  const licH = Math.round(licW * (OUT_H / OUT_W));
+  const totalH = licH * 2 + gap;
+  const startX = margin;
   const startY = Math.round((PAGE_H - totalH) / 2);
 
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
 
-  ctx.drawImage(fc, startX, startY);
-  ctx.drawImage(bc, startX, startY + OUT_H + gap);
+  ctx.drawImage(fc, startX, startY, licW, licH);
+  ctx.drawImage(bc, startX, startY + licH + gap, licW, licH);
 
-  // Thin border
   ctx.strokeStyle = '#bbb';
   ctx.lineWidth = 2;
-  ctx.strokeRect(startX, startY, OUT_W, OUT_H);
-  ctx.strokeRect(startX, startY + OUT_H + gap, OUT_W, OUT_H);
+  ctx.strokeRect(startX, startY, licW, licH);
+  ctx.strokeRect(startX, startY + licH + gap, licW, licH);
 
   return page;
 }
