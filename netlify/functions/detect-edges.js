@@ -12,6 +12,7 @@ exports.handler = async (event) => {
     formData.append('image_file', new Blob([imgBuffer], { type: mediaType }), 'license.jpg');
     formData.append('size', 'auto');
     formData.append('format', 'png');
+    formData.append('scale', 'original');
 
     const rbgRes = await fetch('https://api.remove.bg/v1.0/removebg', {
       method: 'POST',
