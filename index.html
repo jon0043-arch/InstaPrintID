@@ -342,9 +342,10 @@ function buildPage() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
+  const startX = Math.round((PAGE_W - OUT_W) / 2);
   // Top license near top, bottom license near bottom third
-  const topY = 150; // ~0.5in from top at 300dpi
-  const bottomY = Math.round(PAGE_H * 0.62); // bottom third
+  const topY = 150;
+  const bottomY = Math.round(PAGE_H * 0.62);
 
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
@@ -359,19 +360,22 @@ function generate() {
   setStatus('Building PDF...');
   document.getElementById('go-btn').disabled = true;
 
-  const page = buildPage();
-
-  // Preview scaled down
-  const prev = document.getElementById('preview-canvas');
-  const scale = 420 / PAGE_W;
-  prev.width = 420;
-  prev.height = Math.round(PAGE_H * scale);
-  prev.getContext('2d').drawImage(page, 0, 0, prev.width, prev.height);
-
-  document.getElementById('output').style.display = 'block';
-  document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
-  document.getElementById('go-btn').disabled = false;
-  setStatus('✅ Ready to print or email.');
+  setTimeout(() => {
+    try {
+      const page = buildPage();
+      const prev = document.getElementById('preview-canvas');
+      const scale = 420 / PAGE_W;
+      prev.width = 420;
+      prev.height = Math.round(PAGE_H * scale);
+      prev.getContext('2d').drawImage(page, 0, 0, prev.width, prev.height);
+      document.getElementById('output').style.display = 'block';
+      document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
+      setStatus('✅ Ready to print or email.');
+    } catch(e) {
+      setStatus('Error: ' + e.message);
+    }
+    document.getElementById('go-btn').disabled = false;
+  }, 100);
 }
 
 function printLicense() {
