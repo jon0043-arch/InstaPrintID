@@ -302,7 +302,8 @@ function renderLicense(sideData) {
   const octx = out.getContext('2d');
   octx.fillStyle = '#fff';
   octx.fillRect(0, 0, OUT_W, OUT_H);
-  const scale = Math.min(OUT_W / rotated.width, OUT_H / rotated.height);
+  // Scale to fill CR80 exactly edge to edge
+  const scale = Math.max(OUT_W / rotated.width, OUT_H / rotated.height);
   const dw = rotated.width * scale, dh = rotated.height * scale;
   octx.drawImage(rotated, (OUT_W-dw)/2, (OUT_H-dh)/2, dw, dh);
 
@@ -324,25 +325,18 @@ function buildPage() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-  const gap = 80;
-  const margin = 100;
-  const availW = PAGE_W - margin * 2;
-  const licW = availW;
-  const licH = Math.round(licW * (OUT_H / OUT_W));
-  const totalH = licH * 2 + gap;
-  const startX = margin;
+  // CR80 at 300dpi = 1013 x 638px — exact real size, centered on page
+  const gap = 60;
+  const totalH = OUT_H * 2 + gap;
+  const startX = Math.round((PAGE_W - OUT_W) / 2);
   const startY = Math.round((PAGE_H - totalH) / 2);
 
   const fc = renderLicense(state.f);
   const bc = renderLicense(state.b);
 
-  ctx.drawImage(fc, startX, startY, licW, licH);
-  ctx.drawImage(bc, startX, startY + licH + gap, licW, licH);
-
-  ctx.strokeStyle = '#bbb';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(startX, startY, licW, licH);
-  ctx.strokeRect(startX, startY + licH + gap, licW, licH);
+  ctx.drawImage(fc, startX, startY, OUT_W, OUT_H);
+  ctx.drawImage(bc, startX, startY + OUT_H + gap, OUT_W, OUT_H);
+  // No borders
 
   return page;
 }
