@@ -19,28 +19,28 @@ nav { display: flex; align-items: center; justify-content: space-between; paddin
 .hero-card > p { color: #666; font-size: 0.88rem; margin-bottom: 24px; line-height: 1.6; }
 .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
 @media(max-width: 480px) { .upload-grid { grid-template-columns: 1fr; } }
-.zone { border: 2px dashed #ddd; border-radius: 14px; padding: 16px 12px; text-align: center; transition: border-color 0.2s; }
+.zone { border: 2px dashed #ddd; border-radius: 14px; padding: 16px 12px; text-align: center; transition: all 0.2s; }
 .zone.ready { border-color: #0070ba; border-style: solid; background: rgba(0,112,186,0.02); }
 .zone.processing { border-color: #f0a500; border-style: solid; }
 .zone-tag { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #0070ba; display: block; margin-bottom: 8px; }
 .zone-preview { width: 100%; max-height: 90px; object-fit: contain; border-radius: 6px; display: none; margin-bottom: 8px; }
 .zone-preview.show { display: block; }
-.zone-status { font-size: 0.75rem; color: #888; margin-bottom: 8px; min-height: 16px; }
+.zone-status { font-size: 0.72rem; margin-bottom: 8px; min-height: 16px; color: #888; }
 .zone-status.ok { color: #00a650; font-weight: 700; }
 .zone-status.working { color: #f0a500; }
 .zone-placeholder { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; }
 .zone-placeholder .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
 .btn-row { display: flex; gap: 8px; }
-.btn-row label { flex: 1; display: block; text-align: center; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; transition: all 0.15s; border: 1.5px solid #000; color: #000; background: transparent; }
-.btn-row label.cam { background: #000; color: #fff; border-color: #000; }
+.btn-row label { flex: 1; display: block; text-align: center; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; border: 1.5px solid #000; color: #000; background: transparent; }
+.btn-row label.cam { background: #000; color: #fff; }
 input[type=file] { display: none; }
 .status { text-align: center; font-size: 0.8rem; color: #0070ba; min-height: 20px; margin: 12px 0; }
-.go-btn { display: block; width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; letter-spacing: 0.2px; transition: opacity 0.2s; }
+.go-btn { display: block; width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: opacity 0.2s; }
 .go-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .output { display: none; margin-top: 24px; border-top: 1px solid #eee; padding-top: 24px; }
 .out-note { text-align: center; font-size: 0.75rem; color: #888; margin-bottom: 14px; }
-.preview-wrap { background: #f8f8f8; border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center; }
-.preview-wrap canvas { max-width: 100%; border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); }
+.preview-wrap { background: #f0f0f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center; }
+.preview-wrap canvas { max-width: 100%; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); background: #fff; }
 .action-btns { display: flex; gap: 10px; flex-direction: column; }
 .print-btn { display: block; width: 100%; padding: 14px; background: #0070ba; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; }
 .email-row { display: flex; gap: 8px; }
@@ -66,8 +66,8 @@ footer strong { color: #fff; }
 footer a { color: #888; margin: 0 8px; text-decoration: none; }
 @media print {
   body > *:not(#print-area) { display: none !important; }
-  #print-area { display: block !important; }
-  #print-area img { width: 3.375in !important; height: 2.125in !important; display: block; margin: 0 0 0.15in; page-break-inside: avoid; }
+  #print-area { display: block !important; margin: 0; padding: 0; }
+  #print-area img { width: 3.375in !important; height: 2.125in !important; display: block; margin: 0 0 0.1in; page-break-inside: avoid; }
 }
 #print-area { display: none; }
 </style>
@@ -83,7 +83,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   <h1>Snap, fix,<br>and print.</h1>
   <div class="hero-card">
     <h2>InstaPrintID</h2>
-    <p>Upload the front and back of any driver's license. AI automatically straightens, resizes, and generates a print-ready PDF at exact license dimensions.</p>
+    <p>Upload any photo of a driver's license — even crooked or sideways. AI extracts it, straightens it, and produces a clean black & white photocopy at exact license size.</p>
 
     <div class="upload-grid">
       <div class="zone" id="zone-f">
@@ -116,7 +116,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
     <button class="go-btn" id="go-btn" disabled onclick="generate()">Generate PDF</button>
 
     <div class="output" id="output">
-      <div class="out-note">Both sides — exact license size (3.375" × 2.125")</div>
+      <div class="out-note">Photocopy preview — 3.375" × 2.125" per side</div>
       <div class="preview-wrap"><canvas id="preview-canvas"></canvas></div>
       <div class="action-btns">
         <button class="print-btn" onclick="printLicense()">🖨️ Print</button>
@@ -132,19 +132,19 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="features">
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
-    <div class="feat"><div class="feat-icon">🤖</div><h3>AI Straightening</h3><p>Automatically detects the license edges and corrects any angle or perspective — no manual adjustments.</p></div>
-    <div class="feat"><div class="feat-icon">📐</div><h3>Exact Real Size</h3><p>Prints at standard CR80 — 3.375" × 2.125" — identical to the physical card. Every time.</p></div>
-    <div class="feat"><div class="feat-icon">📄</div><h3>Both Sides, One Page</h3><p>Front and back on a single PDF. Clean and ready for any deal jacket.</p></div>
-    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos never leave your device. No uploads, no storage, no data retained. Ever.</p></div>
+    <div class="feat"><div class="feat-icon">🤖</div><h3>AI Extraction</h3><p>Automatically finds the license in any photo, removes the background, and straightens it perfectly.</p></div>
+    <div class="feat"><div class="feat-icon">🔄</div><h3>Auto-Rotate</h3><p>Sideways or upside down? AI detects the orientation and corrects it automatically.</p></div>
+    <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white output on white background — looks exactly like a flatbed copy machine.</p></div>
+    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>All processing happens locally. Photos are never uploaded or saved anywhere. Ever.</p></div>
   </div>
 </section>
 
 <section class="how">
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><h3>Snap or Upload</h3><p>Use your phone camera or upload from your photo library.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>AI Fixes It</h3><p>Automatically straightens and resizes to exact license dimensions.</p></div>
-    <div class="step"><div class="step-num">3</div><h3>Print or Email</h3><p>One tap. Both sides at real license size, ready for the deal jacket.</p></div>
+    <div class="step"><div class="step-num">1</div><h3>Snap or Upload</h3><p>Any angle, any lighting. Just get the license in frame.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Extracts, straightens, rotates, and converts to clean B&W.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Print or Email</h3><p>Perfect photocopy at real license size. Every time.</p></div>
   </div>
 </section>
 
@@ -159,10 +159,9 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <div id="print-area"></div>
 
 <script>
-const OUT_W = 1013, OUT_H = 638; // CR80 at 300dpi
+const OUT_W = 1013, OUT_H = 638;
 const state = { f: null, b: null, corners: { f: null, b: null } };
 
-// Wire up file inputs
 ['f','b'].forEach(s => {
   ['cam-','file-'].forEach(pre => {
     document.getElementById(pre+s).addEventListener('change', function() {
@@ -187,8 +186,8 @@ function loadImage(side, file) {
     document.getElementById('prev-'+side).classList.add('show');
     document.getElementById('ph-'+side).style.display = 'none';
     document.getElementById('zone-'+side).className = 'zone processing';
-    setZoneStatus(side, '⏳ Analyzing...', 'working');
-    setStatus('Detecting license edges...');
+    setZoneStatus(side, '⏳ AI analyzing...', 'working');
+    setStatus('Detecting license...');
     detectEdges(side, file);
   };
   im.src = url;
@@ -196,43 +195,37 @@ function loadImage(side, file) {
 
 async function detectEdges(side, file) {
   try {
-    // Convert to base64
     const base64 = await fileToBase64(file);
     const mediaType = file.type || 'image/jpeg';
-
     const res = await fetch('/.netlify/functions/detect-edges', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64: base64, mediaType })
     });
-
-    const corners = await res.json();
-
-    if (corners.error) {
-      // Fallback: use full image
+    const data = await res.json();
+    if (data.error) {
       state.corners[side] = null;
       setZoneStatus(side, '⚠️ Using full image', '');
     } else {
-      state.corners[side] = corners;
-      setZoneStatus(side, '✅ Edges detected', 'ok');
+      state.corners[side] = data;
+      setZoneStatus(side, '✅ License detected', 'ok');
     }
-
     document.getElementById('zone-'+side).className = 'zone ready';
-
-    if (state.f?.img && state.b?.img) {
-      document.getElementById('go-btn').disabled = false;
-      setStatus('Both sides ready — tap Generate PDF.');
-    } else {
-      setStatus(side === 'f' ? 'Front ready — now add the back.' : 'Back ready — now add the front.');
-    }
+    checkBothReady();
   } catch(e) {
     state.corners[side] = null;
     document.getElementById('zone-'+side).className = 'zone ready';
     setZoneStatus(side, '⚠️ Using full image', '');
-    if (state.f?.img && state.b?.img) {
-      document.getElementById('go-btn').disabled = false;
-      setStatus('Both sides ready — tap Generate PDF.');
-    }
+    checkBothReady();
+  }
+}
+
+function checkBothReady() {
+  if (state.f?.img && state.b?.img) {
+    document.getElementById('go-btn').disabled = false;
+    setStatus('Both sides ready — tap Generate PDF.');
+  } else {
+    setStatus(!state.f?.img ? 'Add the front of the license.' : 'Add the back of the license.');
   }
 }
 
@@ -245,81 +238,114 @@ function fileToBase64(file) {
   });
 }
 
-function applyPerspective(img, corners, outCanvas) {
-  const ctx = outCanvas.getContext('2d');
+function renderLicense(img, corners, outCanvas) {
   const W = outCanvas.width, H = outCanvas.height;
-  ctx.fillStyle = '#fff';
+  const ctx = outCanvas.getContext('2d');
+
+  // White background
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, H);
 
-  if (!corners) {
-    // Fallback: scale to fill
-    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
-    const sw = img.naturalWidth * scale, sh = img.naturalHeight * scale;
-    ctx.drawImage(img, (W-sw)/2, (H-sh)/2, sw, sh);
-    return;
-  }
+  // Temp canvas for extraction
+  const tmp = document.createElement('canvas');
+  tmp.width = W; tmp.height = H;
+  const tctx = tmp.getContext('2d');
+  tctx.fillStyle = '#ffffff';
+  tctx.fillRect(0, 0, W, H);
 
-  // Convert fractional corners to pixel coords
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-  const src = [
-    [corners.topLeft.x * iw,     corners.topLeft.y * ih],
-    [corners.topRight.x * iw,    corners.topRight.y * ih],
-    [corners.bottomRight.x * iw, corners.bottomRight.y * ih],
-    [corners.bottomLeft.x * iw,  corners.bottomLeft.y * ih]
-  ];
-  const dst = [[0,0],[W,0],[W,H],[0,H]];
+  if (corners && !corners.error) {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const src = [
+      [corners.topLeft.x * iw,     corners.topLeft.y * ih],
+      [corners.topRight.x * iw,    corners.topRight.y * ih],
+      [corners.bottomRight.x * iw, corners.bottomRight.y * ih],
+      [corners.bottomLeft.x * iw,  corners.bottomLeft.y * ih]
+    ];
 
-  // Draw using triangles for perspective transform
-  const offscreen = document.createElement('canvas');
-  offscreen.width = iw; offscreen.height = ih;
-  offscreen.getContext('2d').drawImage(img, 0, 0);
+    // Draw source image to offscreen
+    const off = document.createElement('canvas');
+    off.width = iw; off.height = ih;
+    off.getContext('2d').drawImage(img, 0, 0);
 
-  // Use simple quad warp via small strips
-  const steps = 40;
-  for (let y = 0; y < steps; y++) {
-    for (let x = 0; x < steps; x++) {
-      const u0 = x/steps, u1 = (x+1)/steps;
-      const v0 = y/steps, v1 = (y+1)/steps;
-
-      // Bilinear interpolation of source corners
-      const sx = (p,u,v) => p[0][0]*(1-u)*(1-v) + p[1][0]*u*(1-v) + p[3][0]*(1-u)*v + p[2][0]*u*v;
-      const sy = (p,u,v) => p[0][1]*(1-u)*(1-v) + p[1][1]*u*(1-v) + p[3][1]*(1-u)*v + p[2][1]*u*v;
-
-      const srcX0 = sx(src,u0,v0), srcY0 = sy(src,u0,v0);
-      const srcX1 = sx(src,u1,v0), srcY1 = sy(src,u1,v0);
-      const srcX2 = sx(src,u1,v1), srcY2 = sy(src,u1,v1);
-      const srcX3 = sx(src,u0,v1), srcY3 = sy(src,u0,v1);
-
-      const dstX0 = sx(dst,u0,v0), dstY0 = sy(dst,u0,v0);
-      const dstX1 = sx(dst,u1,v0), dstY1 = sy(dst,u1,v0);
-      const dstX2 = sx(dst,u1,v1), dstY2 = sy(dst,u1,v1);
-      const dstX3 = sx(dst,u0,v1), dstY3 = sy(dst,u0,v1);
-
-      // Draw small quad patch
-      const pw = Math.ceil((u1-u0)*iw)+1, ph = Math.ceil((v1-v0)*ih)+1;
-      const patch = document.createElement('canvas');
-      patch.width = pw; patch.height = ph;
-      patch.getContext('2d').drawImage(offscreen, srcX0, srcY0, srcX1-srcX0||1, srcY3-srcY0||1, 0, 0, pw, ph);
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(dstX0,dstY0);
-      ctx.lineTo(dstX1,dstY1);
-      ctx.lineTo(dstX2,dstY2);
-      ctx.lineTo(dstX3,dstY3);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(patch, dstX0, dstY0, dstX1-dstX0||1, dstY3-dstY0||1);
-      ctx.restore();
+    // Perspective warp via grid
+    const steps = 60;
+    for (let y = 0; y < steps; y++) {
+      for (let x = 0; x < steps; x++) {
+        const u0=x/steps, u1=(x+1)/steps, v0=y/steps, v1=(y+1)/steps;
+        const bi=(p,u,v)=>({
+          x: p[0][0]*(1-u)*(1-v)+p[1][0]*u*(1-v)+p[3][0]*(1-u)*v+p[2][0]*u*v,
+          y: p[0][1]*(1-u)*(1-v)+p[1][1]*u*(1-v)+p[3][1]*(1-u)*v+p[2][1]*u*v
+        });
+        const dst=[[0,0],[W,0],[W,H],[0,H]];
+        const s0=bi(src,u0,v0),s1=bi(src,u1,v0),s2=bi(src,u1,v1),s3=bi(src,u0,v1);
+        const d0=bi(dst,u0,v0),d1=bi(dst,u1,v0),d2=bi(dst,u1,v1),d3=bi(dst,u0,v1);
+        const pw=Math.ceil(iw/steps)+2, ph=Math.ceil(ih/steps)+2;
+        const patch=document.createElement('canvas');
+        patch.width=pw; patch.height=ph;
+        patch.getContext('2d').drawImage(off,s0.x,s0.y,s1.x-s0.x||1,s3.y-s0.y||1,0,0,pw,ph);
+        tctx.save();
+        tctx.beginPath();
+        tctx.moveTo(d0.x,d0.y);
+        tctx.lineTo(d1.x,d1.y);
+        tctx.lineTo(d2.x,d2.y);
+        tctx.lineTo(d3.x,d3.y);
+        tctx.closePath();
+        tctx.clip();
+        tctx.drawImage(patch,d0.x,d0.y,d1.x-d0.x||1,d3.y-d0.y||1);
+        tctx.restore();
+      }
     }
+  } else {
+    // Fallback
+    const scale = Math.max(W/img.naturalWidth, H/img.naturalHeight);
+    const sw=img.naturalWidth*scale, sh=img.naturalHeight*scale;
+    tctx.drawImage(img,(W-sw)/2,(H-sh)/2,sw,sh);
   }
+
+  // Apply rotation if needed
+  const rot = corners?.rotation || 0;
+  if (rot !== 0) {
+    const rot2 = document.createElement('canvas');
+    if (rot === 90 || rot === 270) { rot2.width=H; rot2.height=W; }
+    else { rot2.width=W; rot2.height=H; }
+    const rctx = rot2.getContext('2d');
+    rctx.translate(rot2.width/2, rot2.height/2);
+    rctx.rotate(rot * Math.PI/180);
+    rctx.drawImage(tmp, -W/2, -H/2);
+    tctx.clearRect(0,0,W,H);
+    // Rescale rotated back to W x H
+    const scaleR = rot===90||rot===270 ? Math.min(W/rot2.width,H/rot2.height) : 1;
+    tctx.drawImage(rot2, (W-rot2.width*scaleR)/2, (H-rot2.height*scaleR)/2, rot2.width*scaleR, rot2.height*scaleR);
+  }
+
+  // Convert to high-contrast B&W (photocopy effect)
+  const imageData = tctx.getImageData(0, 0, W, H);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    // Grayscale
+    const gray = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    // High contrast curve — brighten whites, darken darks
+    const contrast = 1.6;
+    const factor = (259*(contrast*255+255))/(255*(259-contrast*255));
+    let val = factor*(gray-128)+128;
+    // Extra: push near-white to pure white
+    if (val > 200) val = 255;
+    // Clamp
+    val = Math.max(0, Math.min(255, val));
+    d[i]=d[i+1]=d[i+2]=val;
+    d[i+3]=255;
+  }
+  tctx.putImageData(imageData, 0, 0);
+
+  // Draw final to output
+  ctx.drawImage(tmp, 0, 0);
 }
 
 function generate() {
-  setStatus('Building PDF...');
+  setStatus('Generating...');
   document.getElementById('go-btn').disabled = true;
 
-  const gap = 16;
+  const gap = 20;
   const canvas = document.getElementById('preview-canvas');
   canvas.width = OUT_W;
   canvas.height = OUT_H * 2 + gap;
@@ -327,25 +353,20 @@ function generate() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, OUT_W, OUT_H * 2 + gap);
 
-  // Render front
-  const fc = document.createElement('canvas');
-  fc.width = OUT_W; fc.height = OUT_H;
-  applyPerspective(state.f.img, state.corners.f, fc);
+  const fc = document.createElement('canvas'); fc.width=OUT_W; fc.height=OUT_H;
+  renderLicense(state.f.img, state.corners.f, fc);
   ctx.drawImage(fc, 0, 0);
 
-  // Divider
-  ctx.strokeStyle = '#ddd';
+  ctx.strokeStyle = '#ccc';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(0, OUT_H + gap/2);
-  ctx.lineTo(OUT_W, OUT_H + gap/2);
+  ctx.moveTo(0, OUT_H+gap/2);
+  ctx.lineTo(OUT_W, OUT_H+gap/2);
   ctx.stroke();
 
-  // Render back
-  const bc = document.createElement('canvas');
-  bc.width = OUT_W; bc.height = OUT_H;
-  applyPerspective(state.b.img, state.corners.b, bc);
-  ctx.drawImage(bc, 0, OUT_H + gap);
+  const bc = document.createElement('canvas'); bc.width=OUT_W; bc.height=OUT_H;
+  renderLicense(state.b.img, state.corners.b, bc);
+  ctx.drawImage(bc, 0, OUT_H+gap);
 
   document.getElementById('output').style.display = 'block';
   document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
@@ -357,9 +378,8 @@ function printLicense() {
   const pa = document.getElementById('print-area');
   pa.innerHTML = '';
   ['f','b'].forEach(s => {
-    const c = document.createElement('canvas');
-    c.width = OUT_W; c.height = OUT_H;
-    applyPerspective(state[s].img, state.corners[s], c);
+    const c = document.createElement('canvas'); c.width=OUT_W; c.height=OUT_H;
+    renderLicense(state[s].img, state.corners[s], c);
     const img = document.createElement('img');
     img.src = c.toDataURL('image/jpeg', 0.95);
     pa.appendChild(img);
@@ -370,34 +390,21 @@ function printLicense() {
 function emailPDF() {
   const email = document.getElementById('email-input').value.trim();
   if (!email) { alert('Please enter an email address.'); return; }
-
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'in', format: [3.375, 4.5] });
-
-  ['f','b'].forEach((s, i) => {
-    const c = document.createElement('canvas');
-    c.width = OUT_W; c.height = OUT_H;
-    applyPerspective(state[s].img, state.corners[s], c);
-    if (i > 0) pdf.addPage();
-    pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, i === 0 ? 0 : 2.25, 3.375, 2.125);
-  });
-
-  // Both on one page
-  const pdf2 = new jsPDF({ unit: 'in', format: [3.375, 4.5] });
-  const fc = document.createElement('canvas'); fc.width = OUT_W; fc.height = OUT_H;
-  applyPerspective(state.f.img, state.corners.f, fc);
-  const bc = document.createElement('canvas'); bc.width = OUT_W; bc.height = OUT_H;
-  applyPerspective(state.b.img, state.corners.b, bc);
-  pdf2.addImage(fc.toDataURL('image/jpeg',0.92),'JPEG',0,0,3.375,2.125);
-  pdf2.addImage(bc.toDataURL('image/jpeg',0.92),'JPEG',0,2.25,3.375,2.125);
-
-  const blob = pdf2.output('blob');
-  const url = URL.createObjectURL(blob);
+  const fc = document.createElement('canvas'); fc.width=OUT_W; fc.height=OUT_H;
+  renderLicense(state.f.img, state.corners.f, fc);
+  const bc = document.createElement('canvas'); bc.width=OUT_W; bc.height=OUT_H;
+  renderLicense(state.b.img, state.corners.b, bc);
+  pdf.addImage(fc.toDataURL('image/jpeg',0.92),'JPEG',0,0,3.375,2.125);
+  pdf.addImage(bc.toDataURL('image/jpeg',0.92),'JPEG',0,2.25,3.375,2.125);
+  const blob = pdf.output('blob');
   const a = document.createElement('a');
-  a.href = url; a.download = 'license-copy.pdf'; a.click();
-
+  a.href = URL.createObjectURL(blob);
+  a.download = 'license-copy.pdf';
+  a.click();
   setTimeout(() => {
-    window.location.href = `mailto:${email}?subject=License%20Copy&body=The%20license%20PDF%20(license-copy.pdf)%20was%20downloaded%20to%20your%20device.%20Please%20attach%20it%20to%20this%20email.`;
+    window.location.href = `mailto:${email}?subject=License%20Copy&body=License%20PDF%20downloaded%20as%20license-copy.pdf%20-%20please%20attach%20to%20this%20email.`;
   }, 600);
 }
 </script>
