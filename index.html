@@ -211,7 +211,37 @@ function dismissCookie() {
   document.getElementById('cookie-banner').style.display='none';
 }
 
-// ── Camera ──────────────────────────────────────────────────────────────────
+let countdownTimer = null;
+
+function startCountdown() {
+  if (countdownTimer) return;
+  const txt = document.getElementById('auto-text');
+  const inner = document.getElementById('countdown-inner');
+  let count = 3;
+  inner.textContent = count;
+  txt.textContent = 'Hold perfectly still...';
+  countdownTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      inner.textContent = count;
+      if (navigator.vibrate) navigator.vibrate(40);
+    } else {
+      clearInterval(countdownTimer); countdownTimer = null;
+      inner.textContent = '';
+      capturePhoto();
+    }
+  }, 1000);
+}
+
+function cancelCountdown() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  const inner = document.getElementById('countdown-inner');
+  if (inner) inner.textContent = '';
+  const txt = document.getElementById('auto-text');
+  if (txt) txt.textContent = 'Line up card, then tap the button';
+}
+
+// ── Camera ───────────────────────────────────────────────────────────────────
 async function openCamera(side) {
   currentSide = side;
   document.getElementById('cam-label').textContent = side==='f' ? 'Front of License' : 'Back of License';
