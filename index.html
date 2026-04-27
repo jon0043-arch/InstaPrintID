@@ -102,17 +102,16 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
       <div class="overlay-corner tr"></div>
       <div class="overlay-corner bl"></div>
       <div class="overlay-corner br"></div>
-      <div class="overlay-hint">Align license inside the frame</div>
+      <div class="overlay-hint">Keep card perfectly flat & straight</div>
     </div>
   </div>
   <div class="auto-status">
-    <div class="auto-dot" id="auto-dot"></div>
-    <div class="auto-text" id="auto-text">Looking for license...</div>
+    <div class="auto-text" id="auto-text">Line up card, then tap the button</div>
   </div>
   <div class="camera-controls">
     <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
-    <button class="cam-capture" onclick="capturePhoto()">
-      <div class="cam-capture-inner"></div>
+    <button class="cam-capture" onclick="startCountdown()">
+      <div class="cam-capture-inner" id="countdown-inner" style="display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:#000;"></div>
     </button>
     <div style="width:60px"></div>
   </div>
@@ -222,61 +221,19 @@ async function openCamera(side) {
     });
     document.getElementById('camera-video').srcObject = videoStream;
     document.getElementById('camera-modal').classList.add('active');
-    startAutoCapture();
   } catch(e) { alert('Camera access denied.'); }
 }
 
 function closeCamera() {
+  cancelCountdown();
   stopAutoCapture();
   if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
   document.getElementById('camera-modal').classList.remove('active');
   document.getElementById('camera-video').srcObject = null;
 }
 
-function startAutoCapture() {
-  steadyFrames = 0;
-  const video = document.getElementById('camera-video');
-  const dot = document.getElementById('auto-dot');
-  const txt = document.getElementById('auto-text');
-  const cutout = document.getElementById('overlay-cutout');
-  autoCapLoop = setInterval(() => {
-    if (!video.videoWidth || !video.videoHeight) return;
-    const s = document.createElement('canvas');
-    s.width=100; s.height=63;
-    s.getContext('2d').drawImage(video, video.videoWidth*.25, video.videoHeight*.25, video.videoWidth*.5, video.videoHeight*.5, 0,0,100,63);
-    const d = s.getContext('2d').getImageData(0,0,100,63).data;
-    let bright=0, variance=0;
-    const n = d.length/4;
-    for (let i=0;i<d.length;i+=4) bright += .299*d[i]+.587*d[i+1]+.114*d[i+2];
-    const avg = bright/n;
-    for (let i=0;i<d.length;i+=4) { const l=.299*d[i]+.587*d[i+1]+.114*d[i+2]; variance+=(l-avg)**2; }
-    variance/=n;
-    const ok = avg>80 && avg<200 && variance>2500;
-    if (ok) {
-      steadyFrames++;
-      dot.classList.add('ready'); cutout.classList.add('detected');
-      const pct = Math.min(100,Math.round(steadyFrames/NEEDED_FRAMES*100));
-      txt.textContent = pct<100 ? `Hold still... ${pct}%` : 'Capturing!';
-      if (steadyFrames>=NEEDED_FRAMES) {
-        clearInterval(autoCapLoop); autoCapLoop=null;
-        if (navigator.vibrate) navigator.vibrate([80,40,80]);
-        setTimeout(()=>capturePhoto(), 80);
-      }
-    } else {
-      steadyFrames=0;
-      dot.classList.remove('ready'); cutout.classList.remove('detected');
-      txt.textContent='Align license in frame...';
-    }
-  }, 33);
-}
-
 function stopAutoCapture() {
   if (autoCapLoop) { clearInterval(autoCapLoop); autoCapLoop=null; }
-  steadyFrames=0;
-  const dot=document.getElementById('auto-dot'), txt=document.getElementById('auto-text'), cutout=document.getElementById('overlay-cutout');
-  if (dot) dot.classList.remove('ready');
-  if (cutout) cutout.classList.remove('detected');
-  if (txt) txt.textContent='Looking for license...';
 }
 
 function capturePhoto() {
@@ -285,17 +242,11 @@ function capturePhoto() {
   canvas.width=video.videoWidth; canvas.height=video.videoHeight;
   canvas.getContext('2d').drawImage(video,0,0);
 
-  const skew = checkSkew(canvas);
+  let skew = {straight:true,angle:0};
+  try { skew = checkSkew(canvas); } catch(e) {}
   if (!skew.straight) {
-    // Card is tilted — show warning and restart detection
-    const txt = document.getElementById('auto-text');
-    const cutout = document.getElementById('overlay-cutout');
-    const dot = document.getElementById('auto-dot');
-    cutout.classList.remove('detected');
-    dot.classList.remove('ready');
-    txt.textContent = `⚠️ Card tilted (${skew.angle.toFixed(0)}°) — straighten and hold still`;
-    steadyFrames = 0;
-    setTimeout(() => startAutoCapture(), 1800);
+    document.getElementById('auto-text').textContent = `⚠️ Card tilted (${skew.angle.toFixed(0)}°) — straighten and try again`;
+    document.getElementById('countdown-inner').textContent = '';
     return;
   }
 
