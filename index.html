@@ -202,7 +202,7 @@ const PAGE_W = 2550, PAGE_H = 3300;
 const CR80_RATIO = OUT_W / OUT_H;
 const state = { f: null, b: null };
 let currentSide = null, videoStream = null, autoCapLoop = null, steadyFrames = 0;
-const NEEDED_FRAMES = 50;
+const NEEDED_FRAMES = 90;
 
 if (!sessionStorage.getItem('cookieDismissed')) {
   document.getElementById('cookie-banner').style.display = 'flex';
@@ -251,7 +251,7 @@ function startAutoCapture() {
     const avg = bright/n;
     for (let i=0;i<d.length;i+=4) { const l=.299*d[i]+.587*d[i+1]+.114*d[i+2]; variance+=(l-avg)**2; }
     variance/=n;
-    const ok = avg>70 && avg<210 && variance>1200;
+    const ok = avg>80 && avg<200 && variance>2500;
     if (ok) {
       steadyFrames++;
       dot.classList.add('ready'); cutout.classList.add('detected');
