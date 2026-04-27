@@ -225,8 +225,9 @@ const NEEDED_FRAMES = 50;
 
 // Gyroscope state
 let phoneIsFlat = false;
+let orientationSupported = false;
 let orientationListener = null;
-const TILT_THRESHOLD = 20; // degrees from flat — adjust if needed
+const TILT_THRESHOLD = 25;
 
 if (!sessionStorage.getItem('cookieDismissed')) {
   document.getElementById('cookie-banner').style.display = 'flex';
@@ -241,34 +242,29 @@ function startOrientationWatch() {
   const levelText = document.getElementById('level-text');
   const levelIcon = document.getElementById('level-icon');
 
+  // Show indicator immediately in warning state
+  phoneIsFlat = false;
+  indicator.classList.add('show');
+  indicator.classList.remove('flat');
+  levelIcon.textContent = '⚠️';
+  levelText.textContent = 'Hold phone flat above license';
+
   if (!window.DeviceOrientationEvent) {
-    // Gyroscope not supported — allow capture anyway
+    // No gyroscope — just allow capture, hide indicator
     phoneIsFlat = true;
+    indicator.classList.remove('show');
     return;
   }
 
-  // iOS 13+ requires permission
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission()
-      .then(state => {
-        if (state === 'granted') attachOrientationListener();
-        else { phoneIsFlat = true; } // permission denied — allow anyway
-      })
-      .catch(() => { phoneIsFlat = true; });
-  } else {
-    attachOrientationListener();
-  }
-
   function attachOrientationListener() {
+    orientationSupported = false;
     orientationListener = (e) => {
-      // beta = front-to-back tilt, gamma = left-to-right tilt
-      const beta = Math.abs(e.beta || 0);   // 0 = flat face-up
-      const gamma = Math.abs(e.gamma || 0); // 0 = no left/right tilt
-
-      // Phone is flat when held parallel to ground (beta ~0, gamma ~0)
+      if (e.beta === null && e.gamma === null) return; // no data
+      orientationSupported = true;
+      const beta = Math.abs(e.beta || 0);
+      const gamma = Math.abs(e.gamma || 0);
       const flat = beta < TILT_THRESHOLD && gamma < TILT_THRESHOLD;
       phoneIsFlat = flat;
-
       indicator.classList.add('show');
       if (flat) {
         indicator.classList.add('flat');
@@ -281,6 +277,25 @@ function startOrientationWatch() {
       }
     };
     window.addEventListener('deviceorientation', orientationListener);
+
+    // If no event fires in 2s, sensor unavailable — allow capture
+    setTimeout(() => {
+      if (!orientationSupported) {
+        phoneIsFlat = true;
+        indicator.classList.remove('show');
+      }
+    }, 2000);
+  }
+
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(result => {
+        if (result === 'granted') attachOrientationListener();
+        else { phoneIsFlat = true; indicator.classList.remove('show'); }
+      })
+      .catch(() => { phoneIsFlat = true; indicator.classList.remove('show'); });
+  } else {
+    attachOrientationListener();
   }
 }
 
