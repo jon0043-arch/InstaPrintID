@@ -7,7 +7,7 @@ exports.handler = async (event) => {
     const { imageBase64, mediaType } = JSON.parse(event.body);
 
     // SWITCH BETWEEN PROVIDERS — change to false to use remove.bg
-    const USE_PHOTOROOM = true;
+    const USE_PHOTOROOM = false;
 
     let cleanedBase64;
 
