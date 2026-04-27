@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -89,6 +88,13 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 @keyframes blink { 0%,100%{opacity:1;}50%{opacity:0.4;} }
 .auto-text { color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 .overlay-cutout.detected { border-color: #00e676; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 0 2px #00e676; }
+
+/* Level indicator */
+#level-indicator { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(255,60,60,0.85); padding: 7px 18px; border-radius: 20px; display: none; align-items: center; gap: 8px; }
+#level-indicator.show { display: flex; }
+#level-indicator.flat { background: rgba(0,200,100,0.85); }
+.level-icon { font-size: 1rem; }
+.level-text { color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -96,6 +102,13 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <div id="camera-modal">
   <video id="camera-video" autoplay playsinline muted></video>
   <div class="cam-label" id="cam-label">Front of License</div>
+
+  <!-- Level indicator -->
+  <div id="level-indicator">
+    <span class="level-icon" id="level-icon">📱</span>
+    <span class="level-text" id="level-text">Hold phone flat above license</span>
+  </div>
+
   <div id="camera-overlay">
     <div class="overlay-dim"></div>
     <div class="overlay-cutout" id="overlay-cutout">
@@ -112,7 +125,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   </div>
   <div class="camera-controls">
     <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
-    <button class="cam-capture" onclick="capturePhoto()">
+    <button class="cam-capture" id="cam-capture-btn" onclick="capturePhoto()">
       <div class="cam-capture-inner"></div>
     </button>
     <div style="width:60px"></div>
@@ -210,12 +223,75 @@ let autoCapLoop = null;
 let steadyFrames = 0;
 const NEEDED_FRAMES = 50;
 
+// Gyroscope state
+let phoneIsFlat = false;
+let orientationListener = null;
+const TILT_THRESHOLD = 20; // degrees from flat — adjust if needed
+
 if (!sessionStorage.getItem('cookieDismissed')) {
   document.getElementById('cookie-banner').style.display = 'flex';
 }
 function dismissCookie() {
   sessionStorage.setItem('cookieDismissed', '1');
   document.getElementById('cookie-banner').style.display = 'none';
+}
+
+function startOrientationWatch() {
+  const indicator = document.getElementById('level-indicator');
+  const levelText = document.getElementById('level-text');
+  const levelIcon = document.getElementById('level-icon');
+
+  if (!window.DeviceOrientationEvent) {
+    // Gyroscope not supported — allow capture anyway
+    phoneIsFlat = true;
+    return;
+  }
+
+  // iOS 13+ requires permission
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(state => {
+        if (state === 'granted') attachOrientationListener();
+        else { phoneIsFlat = true; } // permission denied — allow anyway
+      })
+      .catch(() => { phoneIsFlat = true; });
+  } else {
+    attachOrientationListener();
+  }
+
+  function attachOrientationListener() {
+    orientationListener = (e) => {
+      // beta = front-to-back tilt, gamma = left-to-right tilt
+      const beta = Math.abs(e.beta || 0);   // 0 = flat face-up
+      const gamma = Math.abs(e.gamma || 0); // 0 = no left/right tilt
+
+      // Phone is flat when held parallel to ground (beta ~0, gamma ~0)
+      const flat = beta < TILT_THRESHOLD && gamma < TILT_THRESHOLD;
+      phoneIsFlat = flat;
+
+      indicator.classList.add('show');
+      if (flat) {
+        indicator.classList.add('flat');
+        levelIcon.textContent = '✅';
+        levelText.textContent = 'Phone level — good!';
+      } else {
+        indicator.classList.remove('flat');
+        levelIcon.textContent = '⚠️';
+        levelText.textContent = 'Hold phone flat above license';
+      }
+    };
+    window.addEventListener('deviceorientation', orientationListener);
+  }
+}
+
+function stopOrientationWatch() {
+  if (orientationListener) {
+    window.removeEventListener('deviceorientation', orientationListener);
+    orientationListener = null;
+  }
+  phoneIsFlat = false;
+  const indicator = document.getElementById('level-indicator');
+  indicator.classList.remove('show', 'flat');
 }
 
 async function openCamera(side) {
@@ -228,12 +304,14 @@ async function openCamera(side) {
     });
     document.getElementById('camera-video').srcObject = videoStream;
     document.getElementById('camera-modal').classList.add('active');
+    startOrientationWatch();
     startAutoCapture();
   } catch(e) { alert('Camera access denied.'); }
 }
 
 function closeCamera() {
   stopAutoCapture();
+  stopOrientationWatch();
   if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
   document.getElementById('camera-modal').classList.remove('active');
   document.getElementById('camera-video').srcObject = null;
@@ -247,6 +325,16 @@ function startAutoCapture() {
   const cutout = document.getElementById('overlay-cutout');
   autoCapLoop = setInterval(() => {
     if (!video.videoWidth || !video.videoHeight) return;
+
+    // Block auto-capture if phone is tilted
+    if (!phoneIsFlat) {
+      steadyFrames = 0;
+      dot.classList.remove('ready');
+      cutout.classList.remove('detected');
+      txt.textContent = 'Hold phone flat...';
+      return;
+    }
+
     const s = document.createElement('canvas');
     s.width = 100; s.height = 63;
     const sx = s.getContext('2d');
@@ -291,6 +379,11 @@ function stopAutoCapture() {
 }
 
 function capturePhoto() {
+  // Block manual capture if phone is tilted
+  if (!phoneIsFlat) {
+    alert('Hold your phone flat above the license before capturing.');
+    return;
+  }
   const video = document.getElementById('camera-video');
   const canvas = document.getElementById('capture-canvas');
   canvas.width = video.videoWidth;
