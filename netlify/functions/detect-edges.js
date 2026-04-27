@@ -17,7 +17,7 @@ exports.handler = async (event) => {
       const formData = new FormData();
       formData.append('image_file', new Blob([imgBuffer], { type: mediaType }), 'license.jpg');
 
-      const prRes = await fetch('https://sdk.photoroom.com/v1/segment', {
+      const prRes = await fetch('https://image-api.photoroom.com/v1/segment', {
         method: 'POST',
         headers: { 'x-api-key': process.env.PHOTOROOM_API_KEY },
         body: formData
