@@ -46,45 +46,10 @@ exports.handler = async (event) => {
       cleanedBase64 = Buffer.from(rbgBuffer).toString('base64');
     }
 
-    // Ask Claude for rotation only
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 100,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: imageBase64 }
-            },
-            {
-              type: 'text',
-              text: `Look at this photo of a driver's license. How many degrees clockwise must it be rotated so the text reads normally left-to-right and right-side up?
-Return ONLY raw JSON: {"rotation": 0}
-rotation must be 0, 90, 180, or 270. Nothing else.`
-            }
-          ]
-        }]
-      })
-    });
-
-    const claudeData = await claudeRes.json();
-    const text = claudeData.content?.[0]?.text || '{"rotation":0}';
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    let rotation = 0;
-    try { rotation = JSON.parse(cleaned).rotation || 0; } catch(e) {}
-
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cleanedImage: cleanedBase64, rotation })
+      body: JSON.stringify({ cleanedImage: cleanedBase64, rotation: 0 })
     };
 
   } catch (err) {
