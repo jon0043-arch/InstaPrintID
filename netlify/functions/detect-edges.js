@@ -1,61 +1,579 @@
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InstaPrintID — Perfect License Prints</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #000; }
+nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background: #fff; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 1.4rem; font-weight: 900; color: #000; letter-spacing: -0.5px; }
+.logo span { color: #0070ba; }
+.nav-tag { font-size: 0.72rem; font-weight: 700; color: #0070ba; background: rgba(0,112,186,0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(0,112,186,0.2); }
+.hero { background: #9dd4f3; padding: 72px 24px 0; text-align: center; }
+.hero h1 { font-size: clamp(2.6rem, 6vw, 5rem); font-weight: 900; line-height: 1.05; letter-spacing: -2px; margin-bottom: 28px; }
+.hero-card { background: #fff; border-radius: 20px 20px 0 0; max-width: 500px; margin: 0 auto; padding: 36px 28px 40px; box-shadow: 0 -8px 40px rgba(0,0,0,0.1); }
+.hero-card h2 { font-size: 1.3rem; font-weight: 900; margin-bottom: 6px; }
+.hero-card > p { color: #666; font-size: 0.88rem; margin-bottom: 24px; line-height: 1.6; }
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+@media(max-width: 480px) { .upload-grid { grid-template-columns: 1fr; } }
+.zone { border: 2px dashed #ddd; border-radius: 14px; padding: 16px 12px; text-align: center; transition: all 0.2s; }
+.zone.ready { border-color: #0070ba; border-style: solid; background: rgba(0,112,186,0.02); }
+.zone.processing { border-color: #f0a500; border-style: solid; }
+.zone-tag { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #0070ba; display: block; margin-bottom: 8px; }
+.zone-preview { width: 100%; max-height: 90px; object-fit: contain; border-radius: 6px; display: none; margin-bottom: 8px; }
+.zone-preview.show { display: block; }
+.zone-status { font-size: 0.72rem; margin-bottom: 8px; min-height: 16px; color: #888; }
+.zone-status.ok { color: #00a650; font-weight: 700; }
+.zone-status.working { color: #f0a500; }
+.zone-placeholder { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; }
+.zone-placeholder .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+.btn-row { display: flex; gap: 8px; }
+.btn-row label { flex: 1; display: block; text-align: center; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; border: 1.5px solid #000; color: #000; background: transparent; }
+.btn-row label.cam { background: #000; color: #fff; border: none; }
+.btn-row button.cam-btn { flex: 1; padding: 9px 0; border-radius: 22px; font-size: 0.76rem; font-weight: 700; cursor: pointer; background: #000; color: #fff; border: none; }
+input[type=file] { display: none; }
+.status { text-align: center; font-size: 0.8rem; color: #0070ba; min-height: 20px; margin: 12px 0; }
+.go-btn { display: block; width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: opacity 0.2s; }
+.go-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.output { display: none; margin-top: 24px; border-top: 1px solid #eee; padding-top: 24px; }
+.out-note { text-align: center; font-size: 0.75rem; color: #888; margin-bottom: 14px; }
+.preview-wrap { background: #f0f0f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center; }
+.preview-wrap canvas { max-width: 100%; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); background: #fff; }
+.action-btns { display: flex; gap: 10px; flex-direction: column; }
+.print-btn { display: block; width: 100%; padding: 14px; background: #0070ba; color: #fff; border: none; border-radius: 28px; font-size: 1rem; font-weight: 800; cursor: pointer; }
+.features { max-width: 900px; margin: 0 auto; padding: 64px 24px; }
+.features h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 36px; }
+.feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+.feat { background: #f5f5f5; border-radius: 16px; padding: 24px; }
+.feat-icon { font-size: 1.8rem; margin-bottom: 12px; }
+.feat h3 { font-size: 1rem; font-weight: 800; margin-bottom: 5px; }
+.feat p { font-size: 0.82rem; color: #555; line-height: 1.6; }
+.how { background: #9dd4f3; padding: 64px 24px; text-align: center; }
+.how h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 40px; }
+.steps { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; max-width: 680px; margin: 0 auto; }
+.step { flex: 1; min-width: 140px; }
+.step-num { width: 44px; height: 44px; border-radius: 50%; background: #000; color: #fff; font-size: 1.1rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+.step h3 { font-size: 0.95rem; font-weight: 800; margin-bottom: 5px; }
+.step p { font-size: 0.8rem; color: #333; line-height: 1.5; }
+footer { background: #000; color: #888; text-align: center; padding: 28px; font-size: 0.78rem; }
+footer strong { color: #fff; }
+footer a { color: #888; margin: 0 8px; text-decoration: none; }
+@media print {
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; }
+}
+#print-area { display: none; }
 
+/* CAMERA OVERLAY */
+#camera-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#camera-modal.active { display: flex; }
+#camera-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#camera-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.overlay-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+}
+.overlay-cutout {
+  position: relative;
+  z-index: 2;
+  width: 88vw;
+  max-width: 420px;
+  aspect-ratio: 3.375 / 2.125;
+  border-radius: 4.5%;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+  border: 2.5px solid rgba(255,255,255,0.85);
+}
+.overlay-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: #0070ba;
+  border-style: solid;
+  border-width: 0;
+}
+.overlay-corner.tl { top: -2px; left: -2px; border-top-width: 4px; border-left-width: 4px; border-radius: 4px 0 0 0; }
+.overlay-corner.tr { top: -2px; right: -2px; border-top-width: 4px; border-right-width: 4px; border-radius: 0 4px 0 0; }
+.overlay-corner.bl { bottom: -2px; left: -2px; border-bottom-width: 4px; border-left-width: 4px; border-radius: 0 0 0 4px; }
+.overlay-corner.br { bottom: -2px; right: -2px; border-bottom-width: 4px; border-right-width: 4px; border-radius: 0 0 4px 0; }
+.overlay-hint {
+  position: absolute;
+  bottom: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  opacity: 0.85;
+  z-index: 3;
+}
+.camera-controls {
+  position: absolute;
+  bottom: 48px;
+  left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  z-index: 10;
+}
+.cam-cancel {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+}
+.cam-capture {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid rgba(255,255,255,0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+}
+.cam-capture-inner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #ddd;
+}
+.cam-label {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  z-index: 10;
+  background: rgba(0,0,0,0.4);
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- CAMERA MODAL -->
+<div id="camera-modal">
+  <video id="camera-video" autoplay playsinline muted></video>
+  <div class="cam-label" id="cam-label">Front of License</div>
+  <div id="camera-overlay">
+    <div class="overlay-dim"></div>
+    <div class="overlay-cutout">
+      <div class="overlay-corner tl"></div>
+      <div class="overlay-corner tr"></div>
+      <div class="overlay-corner bl"></div>
+      <div class="overlay-corner br"></div>
+      <div class="overlay-hint">Align license inside the frame</div>
+    </div>
+  </div>
+  <div class="camera-controls">
+    <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
+    <button class="cam-capture" onclick="capturePhoto()">
+      <div class="cam-capture-inner"></div>
+    </button>
+    <div style="width:60px"></div>
+  </div>
+</div>
+
+<canvas id="capture-canvas" style="display:none"></canvas>
+
+<nav>
+  <div class="logo">InstaPrint<span>ID</span></div>
+  <div class="nav-tag">🪪 Dealer Tool</div>
+</nav>
+
+<div class="hero">
+  <h1>Snap, fix,<br>and print.</h1>
+  <div class="hero-card">
+    <h2>InstaPrintID</h2>
+    <p>Upload any photo of a driver's license. AI removes the background, straightens it, and produces a clean black & white photocopy — ready to print in seconds.</p>
+
+    <div class="upload-grid">
+      <div class="zone" id="zone-f">
+        <span class="zone-tag">Front</span>
+        <img class="zone-preview" id="prev-f" alt="">
+        <div class="zone-placeholder" id="ph-f"><span class="icon">🪪</span>Front of License</div>
+        <div class="zone-status" id="st-f"></div>
+        <div class="btn-row">
+          <button class="cam-btn" style="width:100%" onclick="openCamera('f')">📷 Camera</button>
+        </div>
+        <input type="file" id="file-f" accept="image/*" style="display:none">
+      </div>
+      <div class="zone" id="zone-b">
+        <span class="zone-tag">Back</span>
+        <img class="zone-preview" id="prev-b" alt="">
+        <div class="zone-placeholder" id="ph-b"><span class="icon">🪪</span>Back of License</div>
+        <div class="zone-status" id="st-b"></div>
+        <div class="btn-row">
+          <button class="cam-btn" style="width:100%" onclick="openCamera('b')">📷 Camera</button>
+        </div>
+        <input type="file" id="file-b" accept="image/*" style="display:none">
+      </div>
+    </div>
+
+    <div class="status" id="status">Upload front and back to get started.</div>
+    <button class="go-btn" id="go-btn" disabled onclick="generate()">Generate PDF</button>
+
+    <div class="output" id="output">
+      <div class="out-note">Preview — prints on 8.5"×11" at exact license size</div>
+      <div class="preview-wrap"><canvas id="preview-canvas"></canvas></div>
+      <div class="action-btns">
+        <button class="print-btn" onclick="printLicense()">🖨️ Print</button>
+        <button class="print-btn" style="margin-top:10px;background:#333" onclick="downloadPDF()">⬇️ Download PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="features">
+  <h2>Everything a dealership needs.</h2>
+  <div class="feat-grid">
+    <div class="feat"><div class="feat-icon">✂️</div><h3>Background Removed</h3><p>AI strips everything except the license — no table, no hand, no clutter.</p></div>
+    <div class="feat"><div class="feat-icon">📷</div><h3>Guided Camera</h3><p>On-screen outline guides you to frame the license perfectly before you snap.</p></div>
+    <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
+    <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere.</p></div>
+  </div>
+</section>
+
+<section class="how">
+  <h2>Done in under 30 seconds.</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><h3>Align & Snap</h3><p>Use the guided camera to frame the license perfectly.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, straightened, rotated, converted to B&W.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Print or Download</h3><p>Perfect photocopy on standard paper. Every time.</p></div>
+  </div>
+</section>
+
+<footer>
+  <strong>InstaPrintID</strong> &nbsp;·&nbsp; Built for automotive dealerships &nbsp;·&nbsp; No data stored. Ever.
+  <br><br>
+  <a href="/privacy">Privacy Policy</a>
+  <a href="/terms">Terms of Use</a>
+  <a href="/disclaimer">Disclaimer</a>
+</footer>
+
+<div id="print-area"></div>
+
+<script>
+const OUT_W = 1013, OUT_H = 638;
+const PAGE_W = 2550, PAGE_H = 3300;
+const CR80_RATIO = OUT_W / OUT_H;
+const state = { f: null, b: null };
+let currentSide = null;
+let videoStream = null;
+
+// File upload listeners
+['f','b'].forEach(s => {
+  document.getElementById('file-'+s).addEventListener('change', function() {
+    if (this.files[0]) handleFile(s, this.files[0]);
+  });
+});
+
+// CAMERA
+async function openCamera(side) {
+  currentSide = side;
+  document.getElementById('cam-label').textContent = side === 'f' ? 'Front of License' : 'Back of License';
   try {
-    const { imageBase64, mediaType } = JSON.parse(event.body);
-
-    // SWITCH BETWEEN PROVIDERS — change to false to use remove.bg
-    const USE_PHOTOROOM = true;
-
-    let cleanedBase64;
-
-    if (USE_PHOTOROOM) {
-      // PhotoRoom background removal
-      const imgBuffer = Buffer.from(imageBase64, 'base64');
-      const formData = new FormData();
-      formData.append('image_file', new Blob([imgBuffer], { type: mediaType }), 'license.jpg');
-
-      const prRes = await fetch('https://sdk.photoroom.com/v1/segment', {
-        method: 'POST',
-        headers: { 'x-api-key': process.env.PHOTOROOM_API_KEY },
-        body: formData
-      });
-
-      if (!prRes.ok) throw new Error('PhotoRoom failed: ' + prRes.status);
-      const prBuffer = await prRes.arrayBuffer();
-      cleanedBase64 = Buffer.from(prBuffer).toString('base64');
-
-    } else {
-      // remove.bg background removal
-      const imgBuffer = Buffer.from(imageBase64, 'base64');
-      const formData = new FormData();
-      formData.append('image_file', new Blob([imgBuffer], { type: mediaType }), 'license.jpg');
-      formData.append('size', 'auto');
-      formData.append('format', 'png');
-
-      const rbgRes = await fetch('https://api.remove.bg/v1.0/removebg', {
-        method: 'POST',
-        headers: { 'X-Api-Key': process.env.REMOVEBG_API_KEY },
-        body: formData
-      });
-
-      if (!rbgRes.ok) throw new Error('remove.bg failed: ' + rbgRes.status);
-      const rbgBuffer = await rbgRes.arrayBuffer();
-      cleanedBase64 = Buffer.from(rbgBuffer).toString('base64');
-    }
-
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cleanedImage: cleanedBase64, rotation: 0 })
-    };
-
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message })
-    };
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    document.getElementById('camera-video').srcObject = videoStream;
+    document.getElementById('camera-modal').classList.add('active');
+  } catch(e) {
+    alert('Camera access denied. Please use the Upload button instead.');
   }
-};
+}
+
+function closeCamera() {
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  document.getElementById('camera-modal').classList.remove('active');
+  document.getElementById('camera-video').srcObject = null;
+}
+
+function capturePhoto() {
+  const btn = document.querySelector('.cam-capture');
+  const label = document.getElementById('cam-label');
+  btn.disabled = true;
+  let count = 3;
+  label.textContent = count;
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      label.textContent = count;
+    } else {
+      clearInterval(interval);
+      label.textContent = '📸';
+      setTimeout(() => {
+        const video = document.getElementById('camera-video');
+        const canvas = document.getElementById('capture-canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        canvas.toBlob(blob => {
+          closeCamera();
+          label.textContent = currentSide === 'f' ? 'Front of License' : 'Back of License';
+          btn.disabled = false;
+          handleFile(currentSide, blob);
+        }, 'image/jpeg', 0.95);
+      }, 300);
+    }
+  }, 1000);
+}
+
+function handleFile(side, file) {
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = () => {
+    document.getElementById('prev-'+side).src = url;
+    document.getElementById('prev-'+side).classList.add('show');
+    document.getElementById('ph-'+side).style.display = 'none';
+    document.getElementById('zone-'+side).className = 'zone processing';
+    setZoneStatus(side, '⏳ Removing background...', 'working');
+    setStatus('Processing license...');
+    processLicense(side, file);
+  };
+  im.src = url;
+}
+
+async function processLicense(side, file) {
+  try {
+    const base64 = await fileToBase64(file);
+    const mediaType = file.type || 'image/jpeg';
+    const res = await fetch('/.netlify/functions/detect-edges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, mediaType })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const cleanedImg = new Image();
+    cleanedImg.onload = () => {
+      state[side] = { img: cleanedImg, rotation: data.rotation || 0 };
+      setZoneStatus(side, '✅ Ready', 'ok');
+      document.getElementById('zone-'+side).className = 'zone ready';
+      checkBothReady();
+    };
+    cleanedImg.src = 'data:image/png;base64,' + data.cleanedImage;
+  } catch(e) {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => {
+      state[side] = { img: im, rotation: 0 };
+      setZoneStatus(side, '⚠️ Background kept', '');
+      document.getElementById('zone-'+side).className = 'zone ready';
+      checkBothReady();
+    };
+    im.src = url;
+  }
+}
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+function setZoneStatus(s, msg, cls) {
+  const el = document.getElementById('st-'+s);
+  el.textContent = msg;
+  el.className = 'zone-status' + (cls ? ' '+cls : '');
+}
+function checkBothReady() {
+  if (state.f && state.b) {
+    document.getElementById('go-btn').disabled = false;
+    setStatus('Both sides ready — tap Generate PDF.');
+  } else {
+    setStatus(!state.f ? 'Add the front of the license.' : 'Add the back of the license.');
+  }
+}
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function renderLicense(sideData) {
+  const { img, rotation } = sideData;
+  const tmp = document.createElement('canvas');
+  tmp.width = img.naturalWidth; tmp.height = img.naturalHeight;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(img, 0, 0);
+  const id = tctx.getImageData(0, 0, tmp.width, tmp.height);
+  const d = id.data;
+  let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
+  for (let y = 0; y < tmp.height; y++) {
+    for (let x = 0; x < tmp.width; x++) {
+      if (d[(y * tmp.width + x) * 4 + 3] > 30) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
+  const cropped = document.createElement('canvas');
+  cropped.width = cropW; cropped.height = cropH;
+  cropped.getContext('2d').drawImage(tmp, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+  let rotated = cropped;
+  if (rotation !== 0) {
+    const r = document.createElement('canvas');
+    if (rotation === 90 || rotation === 270) { r.width = cropH; r.height = cropW; }
+    else { r.width = cropW; r.height = cropH; }
+    const rctx = r.getContext('2d');
+    rctx.fillStyle = '#fff';
+    rctx.fillRect(0, 0, r.width, r.height);
+    rctx.translate(r.width/2, r.height/2);
+    rctx.rotate(rotation * Math.PI / 180);
+    rctx.drawImage(cropped, -cropW/2, -cropH/2);
+    rotated = r;
+  }
+  const imgRatio = rotated.width / rotated.height;
+  let cx = 0, cy = 0, cw = rotated.width, ch = rotated.height;
+  if (imgRatio > CR80_RATIO) {
+    cw = Math.round(rotated.height * CR80_RATIO);
+    cx = Math.round((rotated.width - cw) / 2);
+  } else {
+    ch = Math.round(rotated.width / CR80_RATIO);
+    cy = Math.round((rotated.height - ch) / 2);
+  }
+  const out = document.createElement('canvas');
+  out.width = OUT_W; out.height = OUT_H;
+  const octx = out.getContext('2d');
+  octx.fillStyle = '#fff';
+  octx.fillRect(0, 0, OUT_W, OUT_H);
+  const radius = Math.round(OUT_W * 0.04);
+  octx.save();
+  octx.beginPath();
+  octx.moveTo(radius, 0); octx.lineTo(OUT_W - radius, 0);
+  octx.quadraticCurveTo(OUT_W, 0, OUT_W, radius);
+  octx.lineTo(OUT_W, OUT_H - radius);
+  octx.quadraticCurveTo(OUT_W, OUT_H, OUT_W - radius, OUT_H);
+  octx.lineTo(radius, OUT_H);
+  octx.quadraticCurveTo(0, OUT_H, 0, OUT_H - radius);
+  octx.lineTo(0, radius);
+  octx.quadraticCurveTo(0, 0, radius, 0);
+  octx.closePath();
+  octx.clip();
+  octx.drawImage(rotated, cx, cy, cw, ch, 0, 0, OUT_W, OUT_H);
+  octx.restore();
+  const gid = octx.getImageData(0, 0, OUT_W, OUT_H);
+  const gd = gid.data;
+  for (let i = 0; i < gd.length; i += 4) {
+    if (gd[i+3] < 30) { gd[i]=gd[i+1]=gd[i+2]=255; gd[i+3]=255; }
+    else { const g=Math.round(0.299*gd[i]+0.587*gd[i+1]+0.114*gd[i+2]); gd[i]=gd[i+1]=gd[i+2]=g; gd[i+3]=255; }
+  }
+  octx.putImageData(gid, 0, 0);
+  return out;
+}
+
+function drawBorder(ctx, x, y, w, h) {
+  const r = Math.round(w * 0.04);
+  ctx.save();
+  ctx.strokeStyle = '#aaaaaa';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function buildPage() {
+  const page = document.createElement('canvas');
+  page.width = PAGE_W; page.height = PAGE_H;
+  const ctx = page.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+  const startX = Math.round(PAGE_W * 0.52);
+  const topY = 200;
+  const bottomY = Math.round(PAGE_H * 0.62);
+  const fc = renderLicense(state.f);
+  const bc = renderLicense(state.b);
+  ctx.drawImage(fc, startX, topY, OUT_W, OUT_H);
+  drawBorder(ctx, startX, topY, OUT_W, OUT_H);
+  ctx.drawImage(bc, startX, bottomY, OUT_W, OUT_H);
+  drawBorder(ctx, startX, bottomY, OUT_W, OUT_H);
+  return page;
+}
+
+function generate() {
+  setStatus('Building PDF...');
+  document.getElementById('go-btn').disabled = true;
+  setTimeout(() => {
+    try {
+      const page = buildPage();
+      const prev = document.getElementById('preview-canvas');
+      const scale = 420 / PAGE_W;
+      prev.width = 420;
+      prev.height = Math.round(PAGE_H * scale);
+      prev.getContext('2d').drawImage(page, 0, 0, prev.width, prev.height);
+      document.getElementById('output').style.display = 'block';
+      document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
+      setStatus('✅ Ready to print or download.');
+    } catch(e) { setStatus('Error: ' + e.message); }
+    document.getElementById('go-btn').disabled = false;
+  }, 100);
+}
+
+function printLicense() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+  const page = buildPage();
+  pdf.addImage(page.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 8.5, 11);
+  pdf.autoPrint();
+  window.open(pdf.output('bloburl'));
+}
+
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+  const page = buildPage();
+  pdf.addImage(page.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 8.5, 11);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(pdf.output('blob'));
+  a.download = 'license-copy.pdf';
+  a.click();
+}
+</script>
+</body>
+</html>
