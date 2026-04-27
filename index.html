@@ -284,7 +284,66 @@ function capturePhoto() {
   const canvas = document.getElementById('capture-canvas');
   canvas.width=video.videoWidth; canvas.height=video.videoHeight;
   canvas.getContext('2d').drawImage(video,0,0);
+
+  const skew = checkSkew(canvas);
+  if (!skew.straight) {
+    // Card is tilted — show warning and restart detection
+    const txt = document.getElementById('auto-text');
+    const cutout = document.getElementById('overlay-cutout');
+    const dot = document.getElementById('auto-dot');
+    cutout.classList.remove('detected');
+    dot.classList.remove('ready');
+    txt.textContent = `⚠️ Card tilted (${skew.angle.toFixed(0)}°) — straighten and hold still`;
+    steadyFrames = 0;
+    setTimeout(() => startAutoCapture(), 1800);
+    return;
+  }
+
   canvas.toBlob(blob=>{ closeCamera(); handleFile(currentSide,blob); },'image/jpeg',1.0);
+}
+
+function checkSkew(canvas) {
+  const cw=canvas.width, ch=canvas.height;
+  // Crop the center overlay region (approx CR80 frame area)
+  const rw=Math.round(cw*.6), rh=Math.round(rw/CR80_RATIO);
+  const rx=Math.round((cw-rw)/2), ry=Math.round((ch-rh)/2);
+
+  // Downsample to 60 wide for fast edge detection
+  const SW=60, SH=Math.round(SW/CR80_RATIO);
+  const sm=document.createElement('canvas'); sm.width=SW; sm.height=SH;
+  sm.getContext('2d').drawImage(canvas,rx,ry,rw,rh,0,0,SW,SH);
+  const d=sm.getContext('2d').getImageData(0,0,SW,SH).data;
+
+  // Grayscale
+  const gray=new Float32Array(SW*SH);
+  for (let y=0;y<SH;y++) for (let x=0;x<SW;x++) {
+    const i=(y*SW+x)*4;
+    gray[y*SW+x]=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+  }
+
+  // For each column find row of max vertical gradient in top half
+  const pts=[];
+  const searchH=Math.floor(SH*.55);
+  for (let x=1;x<SW-1;x++) {
+    let maxG=0,bestY=-1;
+    for (let y=1;y<searchH;y++) {
+      const g=Math.abs(gray[y*SW+x]-gray[(y-1)*SW+x]);
+      if(g>maxG){maxG=g;bestY=y;}
+    }
+    if(maxG>8 && bestY>=0) pts.push({x,y:bestY});
+  }
+
+  // Not enough edge data — allow capture
+  if (pts.length<8) return {straight:true,angle:0};
+
+  // Linear regression to find slope of top edge
+  const n=pts.length;
+  let sx=0,sy=0,sxy=0,sx2=0;
+  for (const p of pts){sx+=p.x;sy+=p.y;sxy+=p.x*p.y;sx2+=p.x*p.x;}
+  const slope=(n*sxy-sx*sy)/(n*sx2-sx*sx);
+  const angle=Math.abs(Math.atan(slope)*180/Math.PI);
+
+  return {straight: angle<8, angle};
 }
 
 // ── File handling ────────────────────────────────────────────────────────────
