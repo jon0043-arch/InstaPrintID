@@ -81,7 +81,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 .cam-capture { width: 76px; height: 76px; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
 .cam-capture:active { transform: scale(0.95); }
 .cam-capture-inner { width: 58px; height: 58px; border-radius: 50%; background: #fff; border: 2px solid #ddd; }
-.auto-status { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.55); padding: 8px 18px; border-radius: 20px; }
+.auto-status { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.55); padding: 8px 18px; border-radius: 20px; }
 .auto-text { color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 </style>
 </head>
@@ -97,16 +97,16 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
       <div class="overlay-corner tr"></div>
       <div class="overlay-corner bl"></div>
       <div class="overlay-corner br"></div>
-      <div class="overlay-hint">Hold phone flat & straight above card</div>
+      <div class="overlay-hint">Fill frame with license, then tap</div>
     </div>
   </div>
   <div class="auto-status">
-    <div class="auto-text" id="auto-text">Line up card, then tap the button</div>
+    <div class="auto-text" id="auto-text">Hold phone flat & directly above card</div>
   </div>
   <div class="camera-controls">
     <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
-    <button class="cam-capture" onclick="startCountdown()">
-      <div class="cam-capture-inner" id="countdown-inner" style="display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:#000;"></div>
+    <button class="cam-capture" onclick="capturePhoto()">
+      <div class="cam-capture-inner"></div>
     </button>
     <div style="width:60px"></div>
   </div>
@@ -159,7 +159,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="features">
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
-    <div class="feat"><div class="feat-icon">📷</div><h3>Auto-Capture</h3><p>Just point and hold. The camera detects the license and snaps automatically.</p></div>
+    <div class="feat"><div class="feat-icon">📷</div><h3>Instant Capture</h3><p>Fill the frame with the license and tap. Clean output every time.</p></div>
     <div class="feat"><div class="feat-icon">✂️</div><h3>Background Removed</h3><p>AI strips everything except the license — no table, no hand, no clutter.</p></div>
     <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
     <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere. Ever.</p></div>
@@ -169,7 +169,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="how">
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><h3>Point & Hold</h3><p>Align the license in the frame and tap the button.</p></div>
+    <div class="step"><div class="step-num">1</div><h3>Point & Tap</h3><p>Fill the frame with the license. Tap when it looks straight.</p></div>
     <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, converted to clean B&W.</p></div>
     <div class="step"><div class="step-num">3</div><h3>Print or Download</h3><p>Perfect photocopy on standard 8.5"x11" paper. Every time.</p></div>
   </div>
@@ -195,9 +195,8 @@ const OUT_W = 1013, OUT_H = 638;
 const PAGE_W = 2550, PAGE_H = 3300;
 const CR80_RATIO = OUT_W / OUT_H;
 const state = { f: null, b: null };
-let currentSide = null, videoStream = null, countdownTimer = null;
+let currentSide = null, videoStream = null;
 
-// ── Cookie ───────────────────────────────────────────────────────────────────
 if (!sessionStorage.getItem('cookieDismissed')) {
   document.getElementById('cookie-banner').style.display = 'flex';
 }
@@ -206,36 +205,6 @@ function dismissCookie() {
   document.getElementById('cookie-banner').style.display='none';
 }
 
-// ── Countdown ────────────────────────────────────────────────────────────────
-function startCountdown() {
-  if (countdownTimer) return;
-  const txt = document.getElementById('auto-text');
-  const inner = document.getElementById('countdown-inner');
-  let count = 3;
-  inner.textContent = count;
-  txt.textContent = 'Hold perfectly still...';
-  countdownTimer = setInterval(() => {
-    count--;
-    if (count > 0) {
-      inner.textContent = count;
-      if (navigator.vibrate) navigator.vibrate(40);
-    } else {
-      clearInterval(countdownTimer); countdownTimer = null;
-      inner.textContent = '';
-      capturePhoto();
-    }
-  }, 1000);
-}
-
-function cancelCountdown() {
-  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-  const inner = document.getElementById('countdown-inner');
-  if (inner) inner.textContent = '';
-  const txt = document.getElementById('auto-text');
-  if (txt) txt.textContent = 'Line up card, then tap the button';
-}
-
-// ── Camera ───────────────────────────────────────────────────────────────────
 async function openCamera(side) {
   currentSide = side;
   document.getElementById('cam-label').textContent = side==='f' ? 'Front of License' : 'Back of License';
@@ -249,7 +218,6 @@ async function openCamera(side) {
 }
 
 function closeCamera() {
-  cancelCountdown();
   if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
   document.getElementById('camera-modal').classList.remove('active');
   document.getElementById('camera-video').srcObject = null;
@@ -263,7 +231,6 @@ function capturePhoto() {
   canvas.toBlob(blob=>{ closeCamera(); handleFile(currentSide,blob); },'image/jpeg',1.0);
 }
 
-// ── File handling ─────────────────────────────────────────────────────────────
 function handleFile(side, file) {
   const url = URL.createObjectURL(file);
   const im = new Image();
@@ -287,7 +254,6 @@ async function processLicense(side, file) {
       body: JSON.stringify({ imageBase64:base64, mediaType:file.type||'image/jpeg' })
     });
     const data = await res.json();
-
     if (data.retake) {
       setZoneStatus(side,'','');
       document.getElementById('zone-'+side).className='zone';
@@ -297,7 +263,6 @@ async function processLicense(side, file) {
       showRetakeAlert(data.reason, side);
       return;
     }
-
     if (data.error) throw new Error(data.error);
     const img = new Image();
     img.onload = () => {
@@ -320,7 +285,6 @@ async function processLicense(side, file) {
   }
 }
 
-// ── Retake alert ─────────────────────────────────────────────────────────────
 function showRetakeAlert(reason, side) {
   const existing = document.getElementById('retake-alert');
   if (existing) existing.remove();
@@ -338,7 +302,6 @@ function showRetakeAlert(reason, side) {
   document.body.appendChild(el);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function setStatus(msg) { document.getElementById('status').textContent=msg; }
 function setZoneStatus(s,msg,cls) {
   const el=document.getElementById('st-'+s);
@@ -352,37 +315,6 @@ function fileToBase64(file) {
   return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); });
 }
 
-// ── Deskew ────────────────────────────────────────────────────────────────────
-function deskewCard(canvas) {
-  const W=canvas.width, H=canvas.height;
-  const d=canvas.getContext('2d').getImageData(0,0,W,H).data;
-  const pts=[];
-  const step=Math.max(1,Math.floor(W/60));
-  for (let x=0;x<W;x+=step) {
-    for (let y=0;y<H;y++) {
-      if (d[(y*W+x)*4+3]>40) { pts.push({x,y}); break; }
-    }
-  }
-  if (pts.length<6) return canvas;
-  const n=pts.length;
-  let sx=0,sy=0,sxy=0,sx2=0;
-  for (const p of pts){sx+=p.x;sy+=p.y;sxy+=p.x*p.y;sx2+=p.x*p.x;}
-  const slope=(n*sxy-sx*sy)/(n*sx2-sx*sx);
-  const angle=Math.atan(slope);
-  const deg=Math.abs(angle*180/Math.PI);
-  if (deg<1||deg>15) return canvas;
-  const cos=Math.cos(-angle), sin=Math.sin(-angle);
-  const nw=Math.round(Math.abs(W*cos)+Math.abs(H*sin));
-  const nh=Math.round(Math.abs(W*sin)+Math.abs(H*cos));
-  const r=document.createElement('canvas'); r.width=nw; r.height=nh;
-  const rc=r.getContext('2d');
-  rc.fillStyle='#fff'; rc.fillRect(0,0,nw,nh);
-  rc.translate(nw/2,nh/2); rc.rotate(-angle);
-  rc.drawImage(canvas,-W/2,-H/2);
-  return r;
-}
-
-// ── Light perspective fix ─────────────────────────────────────────────────────
 function lightPerspectiveFix(canvas) {
   const W=canvas.width, H=canvas.height;
   const d=canvas.getContext('2d').getImageData(0,0,W,H).data;
@@ -432,10 +364,10 @@ function lightPerspectiveFix(canvas) {
   const out=document.createElement('canvas'); out.width=dstW; out.height=dstH;
   const oCtx=out.getContext('2d');
   const oData=oCtx.createImageData(dstW,dstH);
-  for (let dy=0;dy<dstH;dy++) for (let dx=0;dx<dstW;dx++) {
-    const w=Hm[2][0]*dx+Hm[2][1]*dy+Hm[2][2];
-    const sx=(Hm[0][0]*dx+Hm[0][1]*dy+Hm[0][2])/w;
-    const sy=(Hm[1][0]*dx+Hm[1][1]*dy+Hm[1][2])/w;
+  for (let dy2=0;dy2<dstH;dy2++) for (let dx2=0;dx2<dstW;dx2++) {
+    const w=Hm[2][0]*dx2+Hm[2][1]*dy2+Hm[2][2];
+    const sx=(Hm[0][0]*dx2+Hm[0][1]*dy2+Hm[0][2])/w;
+    const sy=(Hm[1][0]*dx2+Hm[1][1]*dy2+Hm[1][2])/w;
     const x0=Math.floor(sx),y0=Math.floor(sy);
     const fx=sx-x0,fy=sy-y0;
     const gP=(x,y)=>{
@@ -443,21 +375,19 @@ function lightPerspectiveFix(canvas) {
       const i=(y*W+x)*4;return[sData[i],sData[i+1],sData[i+2],sData[i+3]];
     };
     const p00=gP(x0,y0),p10=gP(x0+1,y0),p01=gP(x0,y0+1),p11=gP(x0+1,y0+1);
-    const i=(dy*dstW+dx)*4;
+    const i=(dy2*dstW+dx2)*4;
     for (let c=0;c<4;c++) oData.data[i+c]=Math.round(p00[c]*(1-fx)*(1-fy)+p10[c]*fx*(1-fy)+p01[c]*(1-fx)*fy+p11[c]*fx*fy);
   }
   oCtx.putImageData(oData,0,0);
   return out;
 }
 
-// ── Render license ────────────────────────────────────────────────────────────
 function renderLicense(sideData) {
   const {img} = sideData;
   const src=document.createElement('canvas');
   src.width=img.naturalWidth; src.height=img.naturalHeight;
   src.getContext('2d').drawImage(img,0,0);
 
-  // Bounding box crop
   const id=src.getContext('2d').getImageData(0,0,src.width,src.height); const d=id.data;
   let minX=src.width,minY=src.height,maxX=0,maxY=0;
   for (let y=0;y<src.height;y++) for (let x=0;x<src.width;x++) {
@@ -470,7 +400,6 @@ function renderLicense(sideData) {
   const cropped=document.createElement('canvas'); cropped.width=cw; cropped.height=ch;
   cropped.getContext('2d').drawImage(src,cx,cy,cw,ch,0,0,cw,ch);
 
-  // Rotate if portrait
   let base=cropped;
   if (cropped.height>cropped.width) {
     const r=document.createElement('canvas'); r.width=ch; r.height=cw;
@@ -478,7 +407,8 @@ function renderLicense(sideData) {
     base=r;
   }
 
-  // Fit into CR80 without cropping
+  base = lightPerspectiveFix(base);
+
   const ratio=base.width/base.height;
   let dw,dh,dx,dy;
   if (ratio>CR80_RATIO){dw=OUT_W;dh=Math.round(OUT_W/ratio);dx=0;dy=Math.round((OUT_H-dh)/2);}
@@ -489,7 +419,6 @@ function renderLicense(sideData) {
   octx.fillStyle='#fff'; octx.fillRect(0,0,OUT_W,OUT_H);
   octx.drawImage(base,0,0,base.width,base.height,dx,dy,dw,dh);
 
-  // Grayscale + rounded corners
   const gid=octx.getImageData(0,0,OUT_W,OUT_H); const gd=gid.data;
   for (let i=0;i<gd.length;i+=4) {
     if(gd[i+3]<30){gd[i]=gd[i+1]=gd[i+2]=255;gd[i+3]=255;}
@@ -497,7 +426,24 @@ function renderLicense(sideData) {
   }
   octx.putImageData(gid,0,0);
 
-  // Rounded corner mask
+  // Sharpen using unsharp mask convolution
+  const sharp=octx.getImageData(0,0,OUT_W,OUT_H);
+  const src2=new Uint8ClampedArray(sharp.data);
+  const w=OUT_W, h=OUT_H;
+  const amount=0.6; // 0=none, 1=strong
+  for (let y=1;y<h-1;y++) for (let x=1;x<w-1;x++) {
+    const i=(y*w+x)*4;
+    for (let c=0;c<3;c++) {
+      const blur=(
+        src2[((y-1)*w+(x-1))*4+c] + src2[((y-1)*w+x)*4+c]*2 + src2[((y-1)*w+(x+1))*4+c] +
+        src2[(y*w+(x-1))*4+c]*2   + src2[(y*w+x)*4+c]*4      + src2[(y*w+(x+1))*4+c]*2   +
+        src2[((y+1)*w+(x-1))*4+c] + src2[((y+1)*w+x)*4+c]*2 + src2[((y+1)*w+(x+1))*4+c]
+      ) / 16;
+      sharp.data[i+c] = Math.min(255, Math.max(0, Math.round(src2[i+c] + amount*(src2[i+c]-blur))));
+    }
+  }
+  octx.putImageData(sharp,0,0);
+
   const mask=document.createElement('canvas'); mask.width=OUT_W; mask.height=OUT_H;
   const mctx=mask.getContext('2d');
   const rad=Math.round(OUT_W*0.04);
@@ -515,7 +461,6 @@ function renderLicense(sideData) {
   return out;
 }
 
-// ── Build + output ────────────────────────────────────────────────────────────
 function buildPage() {
   const page=document.createElement('canvas'); page.width=PAGE_W; page.height=PAGE_H;
   const ctx=page.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
