@@ -7,17 +7,21 @@ exports.handler = async (event) => {
     const imgBuffer = Buffer.from(imageBase64, 'base64');
 
     const formData = new FormData();
-    formData.append('file', new Blob([imgBuffer], { type: mediaType }), 'license.jpg');
+    formData.append('image_file', new Blob([imgBuffer], { type: mediaType }), 'license.jpg');
+    formData.append('size', 'auto');
+    formData.append('format', 'png');
+    formData.append('scale', 'original');
+    formData.append('type', 'product');
 
-    const res = await fetch('https://begone-gateway.webeazzy.com/api/process-image', {
+    const res = await fetch('https://api.remove.bg/v1.0/removebg', {
       method: 'POST',
-      headers: { 'X-API-Key': process.env.WEBEAZZY_API_KEY },
+      headers: { 'X-Api-Key': process.env.REMOVEBG_API_KEY },
       body: formData
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error('Webeazzy failed: ' + res.status + ' ' + errText);
+      throw new Error('remove.bg failed: ' + res.status + ' ' + errText);
     }
 
     const buffer = await res.arrayBuffer();
