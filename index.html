@@ -460,7 +460,7 @@ function renderLicense(sideData) {
 function buildPage() {
   const page=document.createElement('canvas'); page.width=PAGE_W; page.height=PAGE_H;
   const ctx=page.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
-  const startX=Math.round(PAGE_W*.52), topY=150, bottomY=Math.round(PAGE_H*.65);
+  const startX=Math.round(PAGE_W*.52), topY=150, bottomY=Math.round(PAGE_H*.55);
   ctx.drawImage(renderLicense(state.f),startX,topY,OUT_W,OUT_H);
   ctx.drawImage(renderLicense(state.b),startX,bottomY,OUT_W,OUT_H);
   return page;
