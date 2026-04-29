@@ -314,75 +314,6 @@ function fileToBase64(file) {
   return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); });
 }
 
-function lightPerspectiveFix(canvas) {
-  const W=canvas.width, H=canvas.height;
-  const d=canvas.getContext('2d').getImageData(0,0,W,H).data;
-  let tl=null,tr=null,bl=null,br=null;
-  let tlMin=Infinity,trMax=-Infinity,blMin=Infinity,brMax=-Infinity;
-  const step=Math.max(1,Math.floor(W/100));
-  for (let y=0;y<H;y+=step) for (let x=0;x<W;x+=step) {
-    if (d[(y*W+x)*4+3]>40) {
-      const sum=x+y,diff=x-y;
-      if(sum<tlMin){tlMin=sum;tl={x,y};}
-      if(sum>brMax){brMax=sum;br={x,y};}
-      if(diff>trMax){trMax=diff;tr={x,y};}
-      if(diff<blMin){blMin=diff;bl={x,y};}
-    }
-  }
-  if (!tl||!tr||!bl||!br) return canvas;
-  const topW=Math.hypot(tr.x-tl.x,tr.y-tl.y);
-  const botW=Math.hypot(br.x-bl.x,br.y-bl.y);
-  const leftH=Math.hypot(bl.x-tl.x,bl.y-tl.y);
-  const rightH=Math.hypot(br.x-tr.x,br.y-tr.y);
-  const wRatio=Math.abs(topW-botW)/Math.max(topW,botW);
-  const hRatio=Math.abs(leftH-rightH)/Math.max(leftH,rightH);
-  if (wRatio>0.12&&hRatio>0.12) return canvas;
-  if (wRatio<0.01&&hRatio<0.01) return canvas;
-  const dstW=Math.round((topW+botW)/2);
-  const dstH=Math.round((leftH+rightH)/2);
-  if (dstW<50||dstH<30) return canvas;
-  const src=[tl,tr,br,bl];
-  const dst=[{x:0,y:0},{x:dstW,y:0},{x:dstW,y:dstH},{x:0,y:dstH}];
-  const A=[],bv=[];
-  for (let i=0;i<4;i++) {
-    const {x:sx,y:sy}=dst[i],{x:dx,y:dy}=src[i];
-    A.push([sx,sy,1,0,0,0,-sx*dx,-sy*dx]);bv.push(dx);
-    A.push([0,0,0,sx,sy,1,-sx*dy,-sy*dy]);bv.push(dy);
-  }
-  const M=A.map((row,i)=>[...row,bv[i]]);
-  for (let c=0;c<8;c++) {
-    let mx=c;
-    for (let r=c+1;r<8;r++) if(Math.abs(M[r][c])>Math.abs(M[mx][c]))mx=r;
-    [M[c],M[mx]]=[M[mx],M[c]];
-    if(Math.abs(M[c][c])<1e-12)continue;
-    for (let r=0;r<8;r++){if(r===c)continue;const f=M[r][c]/M[c][c];for(let j=0;j<=8;j++)M[r][j]-=f*M[c][j];}
-  }
-  const h=M.map((row,i)=>row[8]/row[i]);
-  const Hm=[[h[0],h[1],h[2]],[h[3],h[4],h[5]],[h[6],h[7],1]];
-  const sData=canvas.getContext('2d').getImageData(0,0,W,H).data;
-  const out=document.createElement('canvas'); out.width=dstW; out.height=dstH;
-  const oCtx=out.getContext('2d');
-  const oData=oCtx.createImageData(dstW,dstH);
-  for (let dy2=0;dy2<dstH;dy2++) for (let dx2=0;dx2<dstW;dx2++) {
-    const w=Hm[2][0]*dx2+Hm[2][1]*dy2+Hm[2][2];
-    const sx=(Hm[0][0]*dx2+Hm[0][1]*dy2+Hm[0][2])/w;
-    const sy=(Hm[1][0]*dx2+Hm[1][1]*dy2+Hm[1][2])/w;
-    const x0=Math.floor(sx),y0=Math.floor(sy);
-    const fx=sx-x0,fy=sy-y0;
-    const gP=(x,y)=>{
-      if(x<0||x>=W||y<0||y>=H)return[255,255,255,0];
-      const i=(y*W+x)*4;return[sData[i],sData[i+1],sData[i+2],sData[i+3]];
-    };
-    const p00=gP(x0,y0),p10=gP(x0+1,y0),p01=gP(x0,y0+1),p11=gP(x0+1,y0+1);
-    const i=(dy2*dstW+dx2)*4;
-    for (let c=0;c<4;c++) oData.data[i+c]=Math.round(p00[c]*(1-fx)*(1-fy)+p10[c]*fx*(1-fy)+p01[c]*(1-fx)*fy+p11[c]*fx*fy);
-  }
-  // Always return same dimensions as input — no size change
-  const final=document.createElement('canvas'); final.width=W; final.height=H;
-  final.getContext('2d').drawImage(out,0,0,dstW,dstH,0,0,W,H);
-  return final;
-}
-
 function renderLicense(sideData) {
   const {img} = sideData;
   const src=document.createElement('canvas');
@@ -408,9 +339,6 @@ function renderLicense(sideData) {
     base=r;
   }
 
-  base = lightPerspectiveFix(base);
-
-  // Fit into CR80 without cropping
   const ratio=base.width/base.height;
   let dw,dh,dx,dy;
   if (ratio>CR80_RATIO){dw=OUT_W;dh=Math.round(OUT_W/ratio);dx=0;dy=Math.round((OUT_H-dh)/2);}
@@ -436,24 +364,6 @@ function renderLicense(sideData) {
     else{const g=Math.round(.299*gd[i]+.587*gd[i+1]+.114*gd[i+2]);gd[i]=gd[i+1]=gd[i+2]=g;gd[i+3]=255;}
   }
   octx.putImageData(gid,0,0);
-
-  // Sharpen using unsharp mask convolution
-  const sharp=octx.getImageData(0,0,OUT_W,OUT_H);
-  const src2=new Uint8ClampedArray(sharp.data);
-  const w=OUT_W, h=OUT_H;
-  const amount=1.2; // 0=none, 1=strong
-  for (let y=1;y<h-1;y++) for (let x=1;x<w-1;x++) {
-    const i=(y*w+x)*4;
-    for (let c=0;c<3;c++) {
-      const blur=(
-        src2[((y-1)*w+(x-1))*4+c] + src2[((y-1)*w+x)*4+c]*2 + src2[((y-1)*w+(x+1))*4+c] +
-        src2[(y*w+(x-1))*4+c]*2   + src2[(y*w+x)*4+c]*4      + src2[(y*w+(x+1))*4+c]*2   +
-        src2[((y+1)*w+(x-1))*4+c] + src2[((y+1)*w+x)*4+c]*2 + src2[((y+1)*w+(x+1))*4+c]
-      ) / 16;
-      sharp.data[i+c] = Math.min(255, Math.max(0, Math.round(src2[i+c] + amount*(src2[i+c]-blur))));
-    }
-  }
-  octx.putImageData(sharp,0,0);
   return out;
 }
 
