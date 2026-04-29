@@ -416,8 +416,17 @@ function renderLicense(sideData) {
 
   const out=document.createElement('canvas'); out.width=OUT_W; out.height=OUT_H;
   const octx=out.getContext('2d');
+  const rad=Math.round(OUT_W*0.04);
   octx.fillStyle='#fff'; octx.fillRect(0,0,OUT_W,OUT_H);
+  octx.save();
+  octx.beginPath();
+  octx.moveTo(rad,0); octx.lineTo(OUT_W-rad,0); octx.quadraticCurveTo(OUT_W,0,OUT_W,rad);
+  octx.lineTo(OUT_W,OUT_H-rad); octx.quadraticCurveTo(OUT_W,OUT_H,OUT_W-rad,OUT_H);
+  octx.lineTo(rad,OUT_H); octx.quadraticCurveTo(0,OUT_H,0,OUT_H-rad);
+  octx.lineTo(0,rad); octx.quadraticCurveTo(0,0,rad,0);
+  octx.closePath(); octx.clip();
   octx.drawImage(base,0,0,base.width,base.height,dx,dy,dw,dh);
+  octx.restore();
 
   const gid=octx.getImageData(0,0,OUT_W,OUT_H); const gd=gid.data;
   for (let i=0;i<gd.length;i+=4) {
@@ -443,21 +452,6 @@ function renderLicense(sideData) {
     }
   }
   octx.putImageData(sharp,0,0);
-
-  const mask=document.createElement('canvas'); mask.width=OUT_W; mask.height=OUT_H;
-  const mctx=mask.getContext('2d');
-  const rad=Math.round(OUT_W*0.04);
-  mctx.fillStyle='#fff'; mctx.fillRect(0,0,OUT_W,OUT_H);
-  mctx.globalCompositeOperation='destination-in';
-  mctx.beginPath();
-  mctx.moveTo(rad,0); mctx.lineTo(OUT_W-rad,0); mctx.quadraticCurveTo(OUT_W,0,OUT_W,rad);
-  mctx.lineTo(OUT_W,OUT_H-rad); mctx.quadraticCurveTo(OUT_W,OUT_H,OUT_W-rad,OUT_H);
-  mctx.lineTo(rad,OUT_H); mctx.quadraticCurveTo(0,OUT_H,0,OUT_H-rad);
-  mctx.lineTo(0,rad); mctx.quadraticCurveTo(0,0,rad,0);
-  mctx.closePath(); mctx.fill();
-  octx.globalCompositeOperation='destination-in';
-  octx.drawImage(mask,0,0);
-  octx.globalCompositeOperation='source-over';
   return out;
 }
 
