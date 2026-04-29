@@ -398,8 +398,10 @@ function printLicense() {
 
 function downloadPDF() {
   const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF({unit:'in',format:'letter',orientation:'portrait'});
-  pdf.addImage(buildPage().toDataURL('image/jpeg',1.0),'JPEG',0,0,8.5,11);
+  const pdf=new jsPDF({unit:'in',format:'letter',orientation:'portrait',compress:false});
+  const page=buildPage();
+  const imgData=page.toDataURL('image/jpeg',1.0);
+  pdf.addImage(imgData,'JPEG',0,0,8.5,11,undefined,'NONE');
   const a=document.createElement('a'); a.href=URL.createObjectURL(pdf.output('blob')); a.download='license-copy.pdf'; a.click();
 }
 </script>
