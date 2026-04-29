@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,12 +82,10 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 .cam-capture { width: 76px; height: 76px; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
 .cam-capture:active { transform: scale(0.95); }
 .cam-capture-inner { width: 58px; height: 58px; border-radius: 50%; background: #fff; border: 2px solid #ddd; }
-.auto-status { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.55); padding: 8px 18px; border-radius: 20px; }
-.auto-dot { width: 10px; height: 10px; border-radius: 50%; background: #888; transition: background 0.3s; flex-shrink: 0; }
-.auto-dot.ready { background: #00e676; box-shadow: 0 0 8px rgba(0,230,118,0.8); animation: blink 0.6s ease-in-out infinite; }
-@keyframes blink { 0%,100%{opacity:1;}50%{opacity:0.4;} }
+.auto-status { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.55); padding: 8px 18px; border-radius: 20px; }
 .auto-text { color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
-.overlay-cutout.detected { border-color: #00e676; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 0 2px #00e676; }
+/* FIX: cookie banner hidden by default via CSS, shown by JS */
+#cookie-banner { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #111; color: #fff; padding: 14px 24px; font-size: 0.82rem; align-items: center; justify-content: space-between; gap: 16px; z-index: 9999; }
 </style>
 </head>
 <body>
@@ -103,12 +100,11 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
       <div class="overlay-corner tr"></div>
       <div class="overlay-corner bl"></div>
       <div class="overlay-corner br"></div>
-      <div class="overlay-hint">Align license inside the frame</div>
+      <div class="overlay-hint">Line up ALL 4 corners to the frame edges</div>
     </div>
   </div>
   <div class="auto-status">
-    <div class="auto-dot" id="auto-dot"></div>
-    <div class="auto-text" id="auto-text">Looking for license...</div>
+    <div class="auto-text" id="auto-text">Place license flat. Align all 4 corners to the frame. Then tap. 📷</div>
   </div>
   <div class="camera-controls">
     <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
@@ -139,7 +135,6 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="btn-row">
           <button class="cam-btn" onclick="openCamera('f')">📷 Take Photo</button>
         </div>
-        <input type="file" id="file-f" accept="image/*" style="display:none">
       </div>
       <div class="zone" id="zone-b">
         <span class="zone-tag">Back</span>
@@ -149,17 +144,15 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
         <div class="btn-row">
           <button class="cam-btn" onclick="openCamera('b')">📷 Take Photo</button>
         </div>
-        <input type="file" id="file-b" accept="image/*" style="display:none">
       </div>
     </div>
     <div class="status" id="status">Tap a button to photograph the license.</div>
     <button class="go-btn" id="go-btn" disabled onclick="generate()">Generate PDF</button>
     <div class="output" id="output">
-      <div class="out-note">Preview — prints on 8.5"x11" at exact license size</div>
+      <div class="out-note">Preview — prints on 8.5"×11" at exact license size (3.375"×2.125")</div>
       <div class="preview-wrap"><canvas id="preview-canvas"></canvas></div>
       <div class="action-btns">
-        <button class="print-btn" onclick="printLicense()">🖨️ Print</button>
-        <button class="print-btn" style="margin-top:10px;background:#333" onclick="downloadPDF()">⬇️ Download PDF</button>
+        <button class="print-btn" onclick="downloadPDF()">⬇️ Download PDF</button>
       </div>
     </div>
   </div>
@@ -168,7 +161,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="features">
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
-    <div class="feat"><div class="feat-icon">📷</div><h3>Auto-Capture</h3><p>Just point and hold. The camera detects the license and snaps automatically.</p></div>
+    <div class="feat"><div class="feat-icon">📷</div><h3>Instant Capture</h3><p>Fill the frame with the license and tap. Clean output every time.</p></div>
     <div class="feat"><div class="feat-icon">✂️</div><h3>Background Removed</h3><p>AI strips everything except the license — no table, no hand, no clutter.</p></div>
     <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
     <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere. Ever.</p></div>
@@ -178,9 +171,9 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 <section class="how">
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><h3>Point & Hold</h3><p>Aim at the license inside the frame. It captures automatically.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, straightened, converted to clean B&W.</p></div>
-    <div class="step"><div class="step-num">3</div><h3>Print or Download</h3><p>Perfect photocopy on standard 8.5"x11" paper. Every time.</p></div>
+    <div class="step"><div class="step-num">1</div><h3>Point & Tap</h3><p>Fill the frame with the license. Tap when it looks straight.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, converted to clean B&W.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Print or Download</h3><p>Perfect photocopy on standard 8.5"×11" paper. Every time.</p></div>
   </div>
 </section>
 
@@ -194,107 +187,56 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 
 <div id="print-area"></div>
 
-<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111;color:#fff;padding:14px 24px;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:9999;">
+<!-- FIX: cookie banner display controlled entirely by CSS + JS, no duplicate inline display -->
+<div id="cookie-banner">
   <span>🍪 InstaPrintID uses no cookies and stores no data. Ever. <a href="/privacy" style="color:#9dd4f3;text-decoration:none;">Learn more</a></span>
   <button onclick="dismissCookie()" style="background:#0070ba;color:#fff;border:none;padding:8px 18px;border-radius:20px;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">Got it</button>
 </div>
 
 <script>
-const OUT_W = 1013, OUT_H = 638;
-const PAGE_W = 2550, PAGE_H = 3300;
-const CR80_RATIO = OUT_W / OUT_H;
+// FIX: wrap sessionStorage in try-catch — throws in some mobile private browsers
+const OUT_W = 1013, OUT_H = 638;   // 3.375" × 2.125" @ 300dpi
+const PAGE_W = 2550, PAGE_H = 3300; // 8.5" × 11" @ 300dpi
 const state = { f: null, b: null };
-let currentSide = null;
-let videoStream = null;
-let autoCapLoop = null;
-let steadyFrames = 0;
-const NEEDED_FRAMES = 50;
+let currentSide = null, videoStream = null;
 
-if (!sessionStorage.getItem('cookieDismissed')) {
+// Cookie banner — safe sessionStorage access
+try {
+  if (!sessionStorage.getItem('cookieDismissed')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+} catch(e) {
+  // private mode — just show it
   document.getElementById('cookie-banner').style.display = 'flex';
 }
+
 function dismissCookie() {
-  sessionStorage.setItem('cookieDismissed', '1');
+  try { sessionStorage.setItem('cookieDismissed','1'); } catch(e) {}
   document.getElementById('cookie-banner').style.display = 'none';
 }
 
 async function openCamera(side) {
   currentSide = side;
-  document.getElementById('cam-label').textContent = side === 'f' ? 'Front of License' : 'Back of License';
+  document.getElementById('cam-label').textContent = side==='f' ? 'Front of License' : 'Back of License';
   try {
     videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
+      video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} }, audio:false
     });
     document.getElementById('camera-video').srcObject = videoStream;
     document.getElementById('camera-modal').classList.add('active');
-    startAutoCapture();
-  } catch(e) { alert('Camera access denied.'); }
+  } catch(e) { alert('Camera access denied. Please allow camera access and try again.'); }
 }
 
 function closeCamera() {
-  stopAutoCapture();
-  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
   document.getElementById('camera-modal').classList.remove('active');
   document.getElementById('camera-video').srcObject = null;
-}
-
-function startAutoCapture() {
-  steadyFrames = 0;
-  const video = document.getElementById('camera-video');
-  const dot = document.getElementById('auto-dot');
-  const txt = document.getElementById('auto-text');
-  const cutout = document.getElementById('overlay-cutout');
-  autoCapLoop = setInterval(() => {
-    if (!video.videoWidth || !video.videoHeight) return;
-    const s = document.createElement('canvas');
-    s.width = 100; s.height = 63;
-    const sx = s.getContext('2d');
-    sx.drawImage(video, video.videoWidth*0.25, video.videoHeight*0.25, video.videoWidth*0.5, video.videoHeight*0.5, 0, 0, 100, 63);
-    const d = sx.getImageData(0, 0, 100, 63).data;
-    let totalBright = 0, variance = 0;
-    const samples = d.length / 4;
-    for (let i = 0; i < d.length; i += 4) totalBright += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-    const avgBright = totalBright / samples;
-    for (let i = 0; i < d.length; i += 4) { const lum = 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; variance += Math.pow(lum-avgBright,2); }
-    variance /= samples;
-    const detected = avgBright > 70 && avgBright < 210 && variance > 1200;
-    if (detected) {
-      steadyFrames++;
-      dot.classList.add('ready');
-      cutout.classList.add('detected');
-      const pct = Math.min(100, Math.round((steadyFrames/NEEDED_FRAMES)*100));
-      txt.textContent = pct < 100 ? `Hold still... ${pct}%` : 'Capturing!';
-      if (steadyFrames >= NEEDED_FRAMES) {
-        clearInterval(autoCapLoop); autoCapLoop = null;
-        if (navigator.vibrate) navigator.vibrate([80,40,80]);
-        setTimeout(() => capturePhoto(), 80);
-      }
-    } else {
-      steadyFrames = 0;
-      dot.classList.remove('ready');
-      cutout.classList.remove('detected');
-      txt.textContent = 'Align license in frame...';
-    }
-  }, 33);
-}
-
-function stopAutoCapture() {
-  if (autoCapLoop) { clearInterval(autoCapLoop); autoCapLoop = null; }
-  steadyFrames = 0;
-  const dot = document.getElementById('auto-dot');
-  const txt = document.getElementById('auto-text');
-  const cutout = document.getElementById('overlay-cutout');
-  if (dot) dot.classList.remove('ready');
-  if (cutout) cutout.classList.remove('detected');
-  if (txt) txt.textContent = 'Looking for license...';
 }
 
 function capturePhoto() {
   const video = document.getElementById('camera-video');
   const canvas = document.getElementById('capture-canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0);
   canvas.toBlob(blob => { closeCamera(); handleFile(currentSide, blob); }, 'image/jpeg', 1.0);
 }
@@ -317,40 +259,64 @@ function handleFile(side, file) {
 async function processLicense(side, file) {
   try {
     const base64 = await fileToBase64(file);
-    const mediaType = file.type || 'image/jpeg';
     const res = await fetch('/.netlify/functions/detect-edges', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64, mediaType })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ imageBase64: base64, mediaType: file.type||'image/jpeg' })
     });
     const data = await res.json();
+    if (data.retake) {
+      setZoneStatus(side,'','');
+      document.getElementById('zone-'+side).className='zone';
+      document.getElementById('prev-'+side).classList.remove('show');
+      document.getElementById('ph-'+side).style.display='';
+      state[side] = null;
+      showRetakeAlert(data.reason, side);
+      return;
+    }
     if (data.error) throw new Error(data.error);
-    const cleanedImg = new Image();
-    cleanedImg.onload = () => {
-      state[side] = { img: cleanedImg, rotation: data.rotation || 0 };
+    const img = new Image();
+    img.onload = () => {
+      state[side] = { img };
       setZoneStatus(side, '✅ Ready', 'ok');
       document.getElementById('zone-'+side).className = 'zone ready';
       checkBothReady();
     };
-    cleanedImg.src = 'data:image/png;base64,' + data.cleanedImage;
+    img.src = 'data:image/png;base64,' + data.cleanedImage;
   } catch(e) {
+    // Fallback: use original photo without background removal
     const url = URL.createObjectURL(file);
-    const im = new Image();
-    im.onload = () => {
-      state[side] = { img: im, rotation: 0 };
+    const img = new Image();
+    img.onload = () => {
+      state[side] = { img };
       setZoneStatus(side, '⚠️ Background kept', '');
       document.getElementById('zone-'+side).className = 'zone ready';
       checkBothReady();
     };
-    im.src = url;
+    img.src = url;
   }
+}
+
+function showRetakeAlert(reason, side) {
+  const existing = document.getElementById('retake-alert');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'retake-alert';
+  el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:24px;';
+  el.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+      <div style="font-size:2.5rem;margin-bottom:12px">📷</div>
+      <div style="font-size:1.1rem;font-weight:900;margin-bottom:8px;color:#000">Retake Needed</div>
+      <div style="font-size:0.88rem;color:#555;margin-bottom:24px;line-height:1.6">${reason}</div>
+      <div style="font-size:0.78rem;color:#888;margin-bottom:20px">Place the license flat on a dark surface. Hold your phone directly above — parallel to the card.</div>
+      <button onclick="document.getElementById('retake-alert').remove();openCamera('${side}')" style="display:block;width:100%;padding:14px;background:#000;color:#fff;border:none;border-radius:28px;font-size:1rem;font-weight:800;cursor:pointer">Retake Photo</button>
+    </div>`;
+  document.body.appendChild(el);
 }
 
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
 function setZoneStatus(s, msg, cls) {
   const el = document.getElementById('st-'+s);
-  el.textContent = msg;
-  el.className = 'zone-status' + (cls ? ' '+cls : '');
+  el.textContent = msg; el.className = 'zone-status' + (cls ? ' '+cls : '');
 }
 function checkBothReady() {
   if (state.f && state.b) {
@@ -361,7 +327,7 @@ function checkBothReady() {
   }
 }
 function fileToBase64(file) {
-  return new Promise((res, rej) => {
+  return new Promise((res,rej) => {
     const r = new FileReader();
     r.onload = () => res(r.result.split(',')[1]);
     r.onerror = rej;
@@ -370,126 +336,129 @@ function fileToBase64(file) {
 }
 
 function renderLicense(sideData) {
-  const { img, rotation } = sideData;
-  const tmp = document.createElement('canvas');
-  tmp.width = img.naturalWidth; tmp.height = img.naturalHeight;
-  const tctx = tmp.getContext('2d');
-  tctx.drawImage(img, 0, 0);
-  const id = tctx.getImageData(0, 0, tmp.width, tmp.height);
+  const { img } = sideData;
+  const src = document.createElement('canvas');
+  src.width = img.naturalWidth; src.height = img.naturalHeight;
+  src.getContext('2d').drawImage(img, 0, 0);
+
+  const id = src.getContext('2d').getImageData(0, 0, src.width, src.height);
   const d = id.data;
-  let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
-  for (let y = 0; y < tmp.height; y++) {
-    for (let x = 0; x < tmp.width; x++) {
-      if (d[(y*tmp.width+x)*4+3] > 30) {
-        if (x < minX) minX = x; if (x > maxX) maxX = x;
-        if (y < minY) minY = y; if (y > maxY) maxY = y;
+  let minX=src.width, minY=src.height, maxX=0, maxY=0;
+  for (let y=0; y<src.height; y++) {
+    for (let x=0; x<src.width; x++) {
+      if (d[(y*src.width+x)*4+3] > 30) {
+        if(x<minX)minX=x; if(x>maxX)maxX=x;
+        if(y<minY)minY=y; if(y>maxY)maxY=y;
       }
     }
   }
-  const pad = 8;
-  const cropX = Math.max(0, minX-pad), cropY = Math.max(0, minY-pad);
-  const cropW = Math.min(tmp.width, maxX+pad)-cropX;
-  const cropH = Math.min(tmp.height, maxY+pad)-cropY;
+  // If no transparent pixels found (fallback image), use full canvas
+  if (minX >= maxX || minY >= maxY) { minX=0; minY=0; maxX=src.width-1; maxY=src.height-1; }
+
+  const pad=8, cx=Math.max(0,minX-pad), cy=Math.max(0,minY-pad);
+  const cw=Math.min(src.width,maxX+pad)-cx, ch=Math.min(src.height,maxY+pad)-cy;
   const cropped = document.createElement('canvas');
-  cropped.width = cropW; cropped.height = cropH;
-  cropped.getContext('2d').drawImage(tmp, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-  let rotated = cropped;
-  const isPortrait = cropped.height > cropped.width;
-  const finalRotation = isPortrait ? 90 : (rotation || 0);
-  if (finalRotation !== 0) {
+  cropped.width=cw; cropped.height=ch;
+  cropped.getContext('2d').drawImage(src, cx, cy, cw, ch, 0, 0, cw, ch);
+
+  // Rotate if taller than wide (portrait photo of landscape license)
+  let base = cropped;
+  if (cropped.height > cropped.width) {
     const r = document.createElement('canvas');
-    if (finalRotation===90||finalRotation===270) { r.width=cropH; r.height=cropW; }
-    else { r.width=cropW; r.height=cropH; }
-    const rctx = r.getContext('2d');
-    rctx.fillStyle='#fff'; rctx.fillRect(0,0,r.width,r.height);
-    rctx.translate(r.width/2,r.height/2);
-    rctx.rotate(finalRotation*Math.PI/180);
-    rctx.drawImage(cropped,-cropW/2,-cropH/2);
-    rotated = r;
+    r.width=ch; r.height=cw;
+    const rc = r.getContext('2d');
+    rc.translate(ch/2, cw/2); rc.rotate(Math.PI/2);
+    rc.drawImage(cropped, -cw/2, -ch/2);
+    base = r;
   }
-  const imgRatio = rotated.width/rotated.height;
-  let cx=0,cy=0,cw=rotated.width,ch=rotated.height;
-  if (imgRatio > CR80_RATIO) { cw=Math.round(rotated.height*CR80_RATIO); cx=Math.round((rotated.width-cw)/2); }
-  else { ch=Math.round(rotated.width/CR80_RATIO); cy=Math.round((rotated.height-ch)/2); }
+
+  // Render at exact CR80 size with rounded corners
   const out = document.createElement('canvas');
   out.width=OUT_W; out.height=OUT_H;
   const octx = out.getContext('2d');
-  octx.fillStyle='#fff'; octx.fillRect(0,0,OUT_W,OUT_H);
-  const radius = Math.round(OUT_W*0.04);
+  const rad = Math.round(OUT_W * 0.04);
+  octx.fillStyle = '#fff'; octx.fillRect(0, 0, OUT_W, OUT_H);
   octx.save();
   octx.beginPath();
-  octx.moveTo(radius,0); octx.lineTo(OUT_W-radius,0);
-  octx.quadraticCurveTo(OUT_W,0,OUT_W,radius);
-  octx.lineTo(OUT_W,OUT_H-radius);
-  octx.quadraticCurveTo(OUT_W,OUT_H,OUT_W-radius,OUT_H);
-  octx.lineTo(radius,OUT_H);
-  octx.quadraticCurveTo(0,OUT_H,0,OUT_H-radius);
-  octx.lineTo(0,radius);
-  octx.quadraticCurveTo(0,0,radius,0);
+  octx.moveTo(rad,0); octx.lineTo(OUT_W-rad,0); octx.quadraticCurveTo(OUT_W,0,OUT_W,rad);
+  octx.lineTo(OUT_W,OUT_H-rad); octx.quadraticCurveTo(OUT_W,OUT_H,OUT_W-rad,OUT_H);
+  octx.lineTo(rad,OUT_H); octx.quadraticCurveTo(0,OUT_H,0,OUT_H-rad);
+  octx.lineTo(0,rad); octx.quadraticCurveTo(0,0,rad,0);
   octx.closePath(); octx.clip();
-  octx.drawImage(rotated,cx,cy,cw,ch,0,0,OUT_W,OUT_H);
+  octx.drawImage(base, 0, 0, OUT_W, OUT_H);
   octx.restore();
-  const gid=octx.getImageData(0,0,OUT_W,OUT_H);
-  const gd=gid.data;
-  for (let i=0;i<gd.length;i+=4) {
-    if (gd[i+3]<30) { gd[i]=gd[i+1]=gd[i+2]=255; gd[i+3]=255; }
-    else { const g=Math.round(0.299*gd[i]+0.587*gd[i+1]+0.114*gd[i+2]); gd[i]=gd[i+1]=gd[i+2]=g; gd[i+3]=255; }
+
+  // Convert to grayscale, fill transparent pixels white
+  const gid = octx.getImageData(0, 0, OUT_W, OUT_H);
+  const gd = gid.data;
+  for (let i=0; i<gd.length; i+=4) {
+    if (gd[i+3] < 30) {
+      gd[i]=gd[i+1]=gd[i+2]=255; gd[i+3]=255;
+    } else {
+      const g = Math.round(.299*gd[i] + .587*gd[i+1] + .114*gd[i+2]);
+      gd[i]=gd[i+1]=gd[i+2]=g; gd[i+3]=255;
+    }
   }
-  octx.putImageData(gid,0,0);
+  octx.putImageData(gid, 0, 0);
   return out;
 }
 
 function buildPage() {
   const page = document.createElement('canvas');
   page.width=PAGE_W; page.height=PAGE_H;
-  const ctx=page.getContext('2d');
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
-  const startX=Math.round(PAGE_W*0.52);
-  const topY=150;
-  const bottomY=Math.round(PAGE_H*0.65);
-  const fc=renderLicense(state.f);
-  const bc=renderLicense(state.b);
-  ctx.drawImage(fc,startX,topY,OUT_W,OUT_H);
-  ctx.drawImage(bc,startX,bottomY,OUT_W,OUT_H);
+  const ctx = page.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+
+  // FIX: Center licenses horizontally on the page
+  // Two licenses stacked vertically, centered both axes
+  const centerX = Math.round((PAGE_W - OUT_W) / 2);  // 769px from left
+  const gap = 150; // gap in px between front and back (0.5" at 300dpi)
+  const totalH = OUT_H * 2 + gap;
+  const topY = Math.round((PAGE_H - totalH) / 2);     // vertically centered
+  const bottomY = topY + OUT_H + gap;
+
+  ctx.drawImage(renderLicense(state.f), centerX, topY, OUT_W, OUT_H);
+  ctx.drawImage(renderLicense(state.b), centerX, bottomY, OUT_W, OUT_H);
+
   return page;
 }
 
 function generate() {
   setStatus('Building PDF...');
-  document.getElementById('go-btn').disabled=true;
-  setTimeout(()=>{
+  document.getElementById('go-btn').disabled = true;
+  setTimeout(() => {
     try {
-      const page=buildPage();
-      const prev=document.getElementById('preview-canvas');
-      const scale=420/PAGE_W;
-      prev.width=420; prev.height=Math.round(PAGE_H*scale);
-      prev.getContext('2d').drawImage(page,0,0,prev.width,prev.height);
-      document.getElementById('output').style.display='block';
-      document.getElementById('output').scrollIntoView({behavior:'smooth'});
-      setStatus('✅ Ready to print or download.');
-    } catch(e) { setStatus('Error: '+e.message); }
-    document.getElementById('go-btn').disabled=false;
-  },100);
-}
-
-function printLicense() {
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF({unit:'in',format:'letter',orientation:'portrait'});
-  const page=buildPage();
-  pdf.addImage(page.toDataURL('image/jpeg',1.0),'JPEG',0,0,8.5,11);
-  pdf.autoPrint();
-  window.open(pdf.output('bloburl'));
+      const page = buildPage();
+      const prev = document.getElementById('preview-canvas');
+      const sc = 420 / PAGE_W;
+      prev.width=420; prev.height=Math.round(PAGE_H*sc);
+      prev.getContext('2d').drawImage(page, 0, 0, prev.width, prev.height);
+      document.getElementById('output').style.display = 'block';
+      document.getElementById('output').scrollIntoView({ behavior:'smooth' });
+      setStatus('✅ Ready to download.');
+    } catch(e) {
+      setStatus('Error: ' + e.message);
+      console.error(e);
+    }
+    document.getElementById('go-btn').disabled = false;
+  }, 100);
 }
 
 function downloadPDF() {
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF({unit:'in',format:'letter',orientation:'portrait'});
-  const page=buildPage();
-  pdf.addImage(page.toDataURL('image/jpeg',1.0),'JPEG',0,0,8.5,11);
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(pdf.output('blob'));
-  a.download='license-copy.pdf';
-  a.click();
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:'in', format:'letter', orientation:'portrait', compress:false });
+    const page = buildPage();
+    const imgData = page.toDataURL('image/jpeg', 1.0);
+    pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11, undefined, 'NONE');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(pdf.output('blob'));
+    a.download = 'license-copy.pdf';
+    a.click();
+  } catch(e) {
+    alert('PDF error: ' + e.message);
+    console.error(e);
+  }
 }
 </script>
 </body>
