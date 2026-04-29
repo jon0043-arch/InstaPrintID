@@ -149,8 +149,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
       <div class="out-note">Preview — prints on 8.5"x11" at exact license size</div>
       <div class="preview-wrap"><canvas id="preview-canvas"></canvas></div>
       <div class="action-btns">
-        <button class="print-btn" onclick="printLicense()">🖨️ Print</button>
-        <button class="print-btn" style="margin-top:10px;background:#333" onclick="downloadPDF()">⬇️ Download PDF</button>
+        <button class="print-btn" onclick="downloadPDF()">⬇️ Download PDF</button>
       </div>
     </div>
   </div>
@@ -420,8 +419,9 @@ function renderLicense(sideData) {
 
   const out=document.createElement('canvas'); out.width=OUT_W; out.height=OUT_H;
   const octx=out.getContext('2d');
+  const PAD = 20; // inner padding in pixels
   octx.fillStyle='#fff'; octx.fillRect(0,0,OUT_W,OUT_H);
-  octx.drawImage(base, sx, sy, sw, sh, Math.max(0,dx), Math.max(0,dy), Math.min(dw,OUT_W), Math.min(dh,OUT_H));
+  octx.drawImage(base, sx, sy, sw, sh, Math.max(PAD,dx+PAD), Math.max(PAD,dy+PAD), Math.min(dw,OUT_W)-PAD*2, Math.min(dh,OUT_H)-PAD*2);
 
   const gid=octx.getImageData(0,0,OUT_W,OUT_H); const gd=gid.data;
   for (let i=0;i<gd.length;i+=4) {
@@ -434,7 +434,7 @@ function renderLicense(sideData) {
   const sharp=octx.getImageData(0,0,OUT_W,OUT_H);
   const src2=new Uint8ClampedArray(sharp.data);
   const w=OUT_W, h=OUT_H;
-  const amount=0.6; // 0=none, 1=strong
+  const amount=1.2; // 0=none, 1=strong
   for (let y=1;y<h-1;y++) for (let x=1;x<w-1;x++) {
     const i=(y*w+x)*4;
     for (let c=0;c<3;c++) {
