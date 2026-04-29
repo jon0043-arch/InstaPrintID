@@ -190,7 +190,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
 </div>
 
 <script>
-const OUT_W = 1063, OUT_H = 668;
+const OUT_W = 1013, OUT_H = 638;
 const PAGE_W = 2550, PAGE_H = 3300;
 const CR80_RATIO = OUT_W / OUT_H;
 const state = { f: null, b: null };
@@ -408,19 +408,16 @@ function renderLicense(sideData) {
 
   base = lightPerspectiveFix(base);
 
-  // Scale to fill CR80 — always fill the full frame
+  // Fit into CR80 without cropping
   const ratio=base.width/base.height;
   let dw,dh,dx,dy;
-  if (ratio>CR80_RATIO){dh=OUT_H;dw=Math.round(OUT_H*ratio);dx=Math.round((OUT_W-dw)/2);dy=0;}
-  else{dw=OUT_W;dh=Math.round(OUT_W/ratio);dx=0;dy=Math.round((OUT_H-dh)/2);}
-  // Clamp to canvas
-  const sx=Math.max(0,-dx), sy=Math.max(0,-dy);
-  const sw=Math.min(dw,OUT_W)-sx, sh=Math.min(dh,OUT_H)-sy;
+  if (ratio>CR80_RATIO){dw=OUT_W;dh=Math.round(OUT_W/ratio);dx=0;dy=Math.round((OUT_H-dh)/2);}
+  else{dh=OUT_H;dw=Math.round(OUT_H*ratio);dy=0;dx=Math.round((OUT_W-dw)/2);}
 
   const out=document.createElement('canvas'); out.width=OUT_W; out.height=OUT_H;
   const octx=out.getContext('2d');
   octx.fillStyle='#fff'; octx.fillRect(0,0,OUT_W,OUT_H);
-  octx.drawImage(base, sx, sy, sw, sh, Math.max(0,dx), Math.max(0,dy), Math.min(dw,OUT_W), Math.min(dh,OUT_H));
+  octx.drawImage(base,0,0,base.width,base.height,dx,dy,dw,dh);
 
   const gid=octx.getImageData(0,0,OUT_W,OUT_H); const gd=gid.data;
   for (let i=0;i<gd.length;i+=4) {
