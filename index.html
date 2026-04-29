@@ -339,11 +339,7 @@ function renderLicense(sideData) {
     base=r;
   }
 
-  const ratio=base.width/base.height;
-  let dw,dh,dx,dy;
-  if (ratio>CR80_RATIO){dw=OUT_W;dh=Math.round(OUT_W/ratio);dx=0;dy=Math.round((OUT_H-dh)/2);}
-  else{dh=OUT_H;dw=Math.round(OUT_H*ratio);dy=0;dx=Math.round((OUT_W-dw)/2);}
-
+  // Stretch to fill CR80 exactly
   const out=document.createElement('canvas'); out.width=OUT_W; out.height=OUT_H;
   const octx=out.getContext('2d');
   const rad=Math.round(OUT_W*0.04);
@@ -355,7 +351,7 @@ function renderLicense(sideData) {
   octx.lineTo(rad,OUT_H); octx.quadraticCurveTo(0,OUT_H,0,OUT_H-rad);
   octx.lineTo(0,rad); octx.quadraticCurveTo(0,0,rad,0);
   octx.closePath(); octx.clip();
-  octx.drawImage(base,0,0,base.width,base.height,dx,dy,dw,dh);
+  octx.drawImage(base,0,0,OUT_W,OUT_H);
   octx.restore();
 
   const gid=octx.getImageData(0,0,OUT_W,OUT_H); const gd=gid.data;
