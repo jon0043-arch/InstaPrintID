@@ -264,7 +264,10 @@ async function processLicense(side, file) {
   // Card fills the frame after warp, so background removal is unnecessary.
   try {
     setZoneStatus(side, '⏳ Straightening...', 'working');
-    const img = await straighten(base64, mediaType);
+     const img = await Promise.race([
+      straighten(base64, mediaType),
+      new Promise(res => setTimeout(() => res(null), 20000))
+    ]);
     if (img) {
       state[side] = { img };
       setZoneStatus(side, '✅ Ready', 'ok');
