@@ -125,7 +125,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   <h1>Snap, fix,<br>and print.</h1>
   <div class="hero-card">
     <h2>InstaPrintID</h2>
-    <p>Point your camera at any driver's license. AI automatically captures, removes the background, and produces a clean black & white photocopy — ready to print in seconds.</p>
+    <p>Point your camera at any driver's license. AI automatically captures, straightens, removes shadows, and produces a clean black & white photocopy — ready to print in seconds.</p>
     <div class="upload-grid">
       <div class="zone" id="zone-f">
         <span class="zone-tag">Front</span>
@@ -162,8 +162,8 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   <h2>Everything a dealership needs.</h2>
   <div class="feat-grid">
     <div class="feat"><div class="feat-icon">📷</div><h3>Instant Capture</h3><p>Fill the frame with the license and tap. Clean output every time.</p></div>
-    <div class="feat"><div class="feat-icon">✂️</div><h3>Background Removed</h3><p>AI strips everything except the license — no table, no hand, no clutter.</p></div>
-    <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
+    <div class="feat"><div class="feat-icon">✂️</div><h3>Auto-Straightened</h3><p>AI finds the card and corrects angle, skew, and perspective — perfect rectangle every time.</p></div>
+    <div class="feat"><div class="feat-icon">🖨️</div><h3>Photocopy Look</h3><p>Shadows removed, clean black & white on white — looks exactly like a flatbed copy machine.</p></div>
     <div class="feat"><div class="feat-icon">🔒</div><h3>Nothing Stored</h3><p>Photos are processed and discarded. Never saved anywhere. Ever.</p></div>
   </div>
 </section>
@@ -172,7 +172,7 @@ footer a { color: #888; margin: 0 8px; text-decoration: none; }
   <h2>Done in under 30 seconds.</h2>
   <div class="steps">
     <div class="step"><div class="step-num">1</div><h3>Point & Tap</h3><p>Fill the frame with the license. Tap when it looks straight.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Background removed, converted to clean B&W.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>AI Does Everything</h3><p>Straightened, shadows removed, converted to clean B&W.</p></div>
     <div class="step"><div class="step-num">3</div><h3>Print or Download</h3><p>Perfect photocopy on standard 8.5"×11" paper. Every time.</p></div>
   </div>
 </section>
@@ -249,7 +249,7 @@ function handleFile(side, file) {
     document.getElementById('prev-'+side).classList.add('show');
     document.getElementById('ph-'+side).style.display = 'none';
     document.getElementById('zone-'+side).className = 'zone processing';
-    setZoneStatus(side, '⏳ Removing background...', 'working');
+    setZoneStatus(side, '⏳ Processing...', 'working');
     setStatus('Processing license...');
     processLicense(side, file);
   };
@@ -257,11 +257,29 @@ function handleFile(side, file) {
 }
 
 async function processLicense(side, file) {
+  const base64 = await fileToBase64(file);
+  const mediaType = file.type || 'image/jpeg';
+
+  // PATH 1: AI corner detection → perspective warp → shadow removal.
+  // Card fills the frame after warp, so background removal is unnecessary.
   try {
-    const base64 = await fileToBase64(file);
+    setZoneStatus(side, '⏳ Straightening...', 'working');
+    const img = await straighten(base64, mediaType);
+    if (img) {
+      state[side] = { img };
+      setZoneStatus(side, '✅ Ready', 'ok');
+      document.getElementById('zone-'+side).className = 'zone ready';
+      checkBothReady();
+      return;
+    }
+  } catch(e) { console.error('straighten failed:', e); }
+
+  // PATH 2 (fallback): original remove.bg flow
+  try {
+    setZoneStatus(side, '⏳ Removing background...', 'working');
     const res = await fetch('/.netlify/functions/detect-edges', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ imageBase64: base64, mediaType: file.type||'image/jpeg' })
+      body: JSON.stringify({ imageBase64: base64, mediaType })
     });
     const data = await res.json();
     if (data.retake) {
@@ -283,18 +301,149 @@ async function processLicense(side, file) {
     };
     img.src = 'data:image/png;base64,' + data.cleanedImage;
   } catch(e) {
-    // Fallback: use original photo without background removal
+    // Final fallback: use original photo as-is
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
       state[side] = { img };
-      setZoneStatus(side, '⚠️ Background kept', '');
+      setZoneStatus(side, '⚠️ Auto-fix unavailable', '');
       document.getElementById('zone-'+side).className = 'zone ready';
       checkBothReady();
     };
     img.src = url;
   }
 }
+
+// ===== STRAIGHTEN PIPELINE =====
+
+async function straighten(base64, mediaType) {
+  const res = await fetch('/.netlify/functions/detect-corners', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ imageBase64: base64, mediaType })
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const c = data.corners;
+  if (!c || !c.topLeft || !c.topRight || !c.bottomRight || !c.bottomLeft) return null;
+
+  const src = await loadImage('data:' + mediaType + ';base64,' + base64);
+  const W = src.naturalWidth, H = src.naturalHeight;
+
+  const quad = [
+    { x: c.topLeft.x * W,     y: c.topLeft.y * H },
+    { x: c.topRight.x * W,    y: c.topRight.y * H },
+    { x: c.bottomRight.x * W, y: c.bottomRight.y * H },
+    { x: c.bottomLeft.x * W,  y: c.bottomLeft.y * H }
+  ];
+
+  const warped = perspectiveWarp(src, quad, OUT_W, OUT_H);
+  if (!warped) return null;
+  flattenShadows(warped);
+  return loadImage(warped.toDataURL('image/jpeg', 0.95));
+}
+
+function loadImage(srcUrl) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = rej;
+    im.src = srcUrl;
+  });
+}
+
+// Maps the detected quad (TL, TR, BR, BL) to a flat outW×outH rectangle.
+// Homography (unit square → quad), inverse-mapped per output pixel with bilinear sampling.
+function perspectiveWarp(img, q, outW, outH) {
+  const sw = img.naturalWidth, sh = img.naturalHeight;
+  const sc = document.createElement('canvas');
+  sc.width = sw; sc.height = sh;
+  const sctx = sc.getContext('2d');
+  sctx.drawImage(img, 0, 0);
+  const sd = sctx.getImageData(0, 0, sw, sh).data;
+
+  const x0=q[0].x, y0=q[0].y, x1=q[1].x, y1=q[1].y,
+        x2=q[2].x, y2=q[2].y, x3=q[3].x, y3=q[3].y;
+  const dx1=x1-x2, dx2=x3-x2, dx3=x0-x1+x2-x3;
+  const dy1=y1-y2, dy2=y3-y2, dy3=y0-y1+y2-y3;
+  const den = dx1*dy2 - dx2*dy1;
+  if (!den) return null;
+  const g = (dx3*dy2 - dx2*dy3) / den;
+  const h = (dx1*dy3 - dx3*dy1) / den;
+  if (!isFinite(g) || !isFinite(h)) return null;
+  const a = x1 - x0 + g*x1, b = x3 - x0 + h*x3, cc = x0;
+  const d = y1 - y0 + g*y1, e = y3 - y0 + h*y3, f = y0;
+
+  const out = document.createElement('canvas');
+  out.width = outW; out.height = outH;
+  const octx = out.getContext('2d');
+  const od = octx.createImageData(outW, outH);
+  const o = od.data;
+
+  for (let v = 0; v < outH; v++) {
+    const t = v / (outH - 1);
+    for (let u = 0; u < outW; u++) {
+      const s = u / (outW - 1);
+      const w = g*s + h*t + 1;
+      const sx = (a*s + b*t + cc) / w;
+      const sy = (d*s + e*t + f) / w;
+      const xi = Math.floor(sx), yi = Math.floor(sy);
+      const oi = (v*outW + u) * 4;
+      if (xi < 0 || yi < 0 || xi >= sw-1 || yi >= sh-1) {
+        o[oi] = o[oi+1] = o[oi+2] = 255; o[oi+3] = 255;
+        continue;
+      }
+      const fx = sx - xi, fy = sy - yi;
+      const i00 = (yi*sw + xi)*4, i10 = i00+4, i01 = i00 + sw*4, i11 = i01+4;
+      for (let k = 0; k < 3; k++) {
+        o[oi+k] =
+          sd[i00+k]*(1-fx)*(1-fy) + sd[i10+k]*fx*(1-fy) +
+          sd[i01+k]*(1-fx)*fy     + sd[i11+k]*fx*fy;
+      }
+      o[oi+3] = 255;
+    }
+  }
+  octx.putImageData(od, 0, 0);
+  return out;
+}
+
+// Evens out shadows and uneven lighting across the flat card.
+// Illumination map = downscale→upscale blur (Safari-safe, no ctx.filter).
+// Each pixel gains toward the average illumination, capped to avoid blowout.
+function flattenShadows(canvas) {
+  const w = canvas.width, h = canvas.height;
+  const ctx = canvas.getContext('2d');
+
+  const small = document.createElement('canvas');
+  small.width = 16; small.height = 10;
+  small.getContext('2d').drawImage(canvas, 0, 0, 16, 10);
+  const blur = document.createElement('canvas');
+  blur.width = w; blur.height = h;
+  const bctx = blur.getContext('2d');
+  bctx.drawImage(small, 0, 0, w, h);
+
+  const src = ctx.getImageData(0, 0, w, h);
+  const ill = bctx.getImageData(0, 0, w, h).data;
+  const sd = src.data;
+
+  let sum = 0;
+  for (let i = 0; i < ill.length; i += 4) {
+    sum += .299*ill[i] + .587*ill[i+1] + .114*ill[i+2];
+  }
+  const target = sum / (ill.length / 4);
+
+  for (let i = 0; i < sd.length; i += 4) {
+    const lum = .299*ill[i] + .587*ill[i+1] + .114*ill[i+2];
+    let gain = lum > 8 ? target / lum : 1;
+    if (gain > 1.8) gain = 1.8;
+    if (gain < 0.6) gain = 0.6;
+    sd[i]   = Math.min(255, sd[i]   * gain);
+    sd[i+1] = Math.min(255, sd[i+1] * gain);
+    sd[i+2] = Math.min(255, sd[i+2] * gain);
+  }
+  ctx.putImageData(src, 0, 0);
+}
+
+// ===== END STRAIGHTEN PIPELINE =====
 
 function showRetakeAlert(reason, side) {
   const existing = document.getElementById('retake-alert');
@@ -352,7 +501,7 @@ function renderLicense(sideData) {
       }
     }
   }
-  // If no transparent pixels found (fallback image), use full canvas
+  // If no transparent pixels found (warped or fallback image), use full canvas
   if (minX >= maxX || minY >= maxY) { minX=0; minY=0; maxX=src.width-1; maxY=src.height-1; }
 
   const pad=8, cx=Math.max(0,minX-pad), cy=Math.max(0,minY-pad);
@@ -409,12 +558,11 @@ function buildPage() {
   const ctx = page.getContext('2d');
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-  // FIX: Center licenses horizontally on the page
   // Two licenses stacked vertically, centered both axes
-  const centerX = Math.round((PAGE_W - OUT_W) / 2);  // 769px from left
-  const gap = 150; // gap in px between front and back (0.5" at 300dpi)
+  const centerX = Math.round((PAGE_W - OUT_W) / 2);
+  const gap = 150; // 0.5" at 300dpi
   const totalH = OUT_H * 2 + gap;
-  const topY = Math.round((PAGE_H - totalH) / 2);     // vertically centered
+  const topY = Math.round((PAGE_H - totalH) / 2);
   const bottomY = topY + OUT_H + gap;
 
   ctx.drawImage(renderLicense(state.f), centerX, topY, OUT_W, OUT_H);
